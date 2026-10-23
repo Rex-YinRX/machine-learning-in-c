@@ -1,0 +1,8 @@
+# 编译产生的文件
+*.exe
+*.o
+*.obj
+
+# 转换后的数据
+data/train/train_data
+data/test/test_data
