@@ -1,38 +1,60 @@
 # machine-learning-in-c
 
-一个用 C 语言实现的小型神经网络学习项目，参考《深度学习入门：基于 Python 的理论与实现》中的思路，同时练习矩阵运算、反向传播和 C 语言的内存管理。
+学习深度学习时一时兴起想到用 C 语言实现的小型神经网络学习项目。
 
-项目已实现 MNIST 全连接网络的训练、模型保存与加载，以及基于 raylib 的手写数字画板。网络计算使用 CPU，无需安装 CUDA。
+目前已实现 MNIST 全连接网络训练、模型保存与加载，以及基于 raylib 的手写数字画板。网络计算使用 CPU，无需 CUDA。项目使用 **CMake** 管理计算核心、数据转换工具和各个可执行程序。
 
-> 想先体验识别效果：完成环境准备和编译后，直接运行 `build-bat/bin/digit_app.exe`。仓库已有预训练模型，无需先转换数据或重新训练。
+## 快速开始
 
-## 已实现的内容
+以下命令使用 **Windows x64 + PowerShell + MinGW-w64 GCC**。先确认已经安装 CMake（至少 3.25）和完整 MinGW-w64 工具链，且 `cmake`、`gcc`、`g++`、`mingw32-make` 可以在终端调用。尚未安装时，请先看[环境准备](#环境准备)。
+
+**Windows x64 下的 MinGW-w64 GCC 和 MSVC 均已验证可用。** 如果使用 MSVC，请按 [MSVC 构建步骤](#使用-msvc-构建)操作，两套工具链选择一套即可。
+
+```powershell
+git clone https://github.com/Rex-YinRX/machine-learning-in-c.git
+cd machine-learning-in-c
+cmake -S . -B build-release -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+cmake --build build-release --parallel
+```
+
+没有 Git 也可以在仓库页面选择 **Code → Download ZIP**，解压后，在 PowerShell 中进入包含 `CMakeLists.txt` 的目录，再执行上面的两条 `cmake` 命令。
+
+确认构建成功后，保持在项目根目录，运行画板：
+
+```powershell
+.\build-release\bin\digit_app.exe
+```
+
+仓库已包含预训练模型 `model/mnist_model.bin`，体验画板无需转换数据或重新训练。首次配置默认会下载 raylib 源码，需要能够访问 GitHub；也可以[预先放置本地源码](#raylib-如何获取)。
+
+## 已实现的功能
 
 - 基于连续内存和 `stride` 的矩阵表示及基本运算。
 - Affine、Sigmoid 层的前向与反向传播。
 - Softmax 与交叉熵损失、SGD 参数更新、mini-batch 训练。
 - 通过层数组组合不同深度、宽度的全连接网络。
-- MNIST IDX 数据读取、矩阵持久化和模型保存、加载。
-- 可缩放的手写画板、实时预测和模型输入预览。
+- MNIST IDX 数据转换、矩阵保存与读取、模型保存与加载。
+- 可缩放画板、实时预测和模型输入预览。
 - 手写输入的前景裁剪、等比例缩放与灰度重心居中。
 
-当前重点是全连接网络；卷积、池化和通用自动微分尚未实现。
+当前统一层接口支持 Affine 和 Sigmoid；卷积、池化和通用自动微分尚未实现。
 
-## 运行环境
+## 环境准备
 
-目前验证的环境如下：
+| 工具 | 要求或本地验证环境 | 用途 |
+| --- | --- | --- |
+| 操作系统与目标架构 | Windows x64 | 本文命令和已有模型的使用环境 |
+| CMake | 项目最低要求 3.25；下述 VS 2026 路线要求至少 4.2，本地使用 4.4.4 | 生成并调用构建系统 |
+| MinGW-w64 工具链 | 本地使用 GCC 14.2.0，含 `gcc`、`g++`、`mingw32-make` | 编译、链接并执行构建任务 |
+| MSVC 工具链 | 已验证 Visual Studio 2026、MSVC 19.51、x64；可替代 MinGW-w64 | 编译、链接并通过 MSBuild 构建 |
+| raylib | 默认下载 6.0 源码并参与构建 | 窗口、输入和绘图 |
+| Git | 可选 | 克隆仓库；也可下载 ZIP |
 
-| 项目 | 环境 |
-| --- | --- |
-| 操作系统与目标架构 | Windows x64 |
-| 编译器 | MinGW-w64 GCC 14.2.0 |
-| C 标准 | C11 |
-| 图形库 | raylib 6.0，仓库已附带头文件和静态库 |
-| 本文使用的终端 | PowerShell |
+核心代码使用 C11。raylib 的 CMake 配置还会检测 C++ 编译器，因此请安装完整工具链：MinGW 路线保留 `g++`，MSVC 路线安装 C++ 桌面开发组件。改用 CMake 后，编译器仍然需要单独安装；VS Code 只是可选编辑器。
 
-其他编译器版本尚未全面验证。当前构建脚本和附带的 raylib 库面向 Windows x64 MinGW 环境，不能直接视为 MSVC、32 位 Windows 或其他操作系统的构建包。
+**GCC 14.2.0 和上述 MSVC 环境均已验证可用。** raylib 与项目一起使用所选工具链从源码编译。其他工具链版本和操作系统仍需各自验证；当前程序中的资源路径采用 Windows 写法。
 
-VS Code 是可选编辑器，不包含本项目需要的 GCC 编译器。只下载源码 ZIP，也仍然需要编译环境。
+以下 GCC 安装步骤供 MinGW 路线使用。选择 MSVC 的用户可以跳过 GCC 安装，准备 CMake 后按 [MSVC 构建步骤](#使用-msvc-构建)安装对应组件并构建。
 
 ### 如果还没有 GCC
 
@@ -59,6 +81,7 @@ C:\mingw64\
 ├── bin\
 │   ├── gcc.exe
 │   ├── g++.exe
+│   ├── mingw32-make.exe
 │   └── ...
 ├── include\
 ├── lib\
@@ -117,7 +140,7 @@ gcc -dumpmachine
 
 第一条查询应显示 `C:\mingw64\bin\gcc.exe`（或你自己设置的对应路径），后面应显示正确的版本和 64 位目标。
 
-这次设置只对当前 PowerShell 及从它启动的程序生效。此时已可以在这个终端里进入项目目录并编译；若希望以后也能直接使用 `gcc`，继续下一步。
+这次设置只对当前 PowerShell 及从它启动的程序生效。当前终端已能调用 GCC，完成后续 CMake 安装和构建前检查后即可构建。若希望以后也能直接使用 `gcc`，继续下一步。
 
 #### 第 4 步：保存到当前用户的 PATH
 
@@ -149,9 +172,9 @@ gcc --version
 gcc -dumpmachine
 ```
 
-确认仍然指向正确的 `gcc.exe`，并输出 `x86_64-w64-mingw32`，即可进入下一节获取源码并编译。
+确认仍然指向正确的 `gcc.exe`，并输出 `x86_64-w64-mingw32`，即可继续安装 CMake 并完成构建前检查。
 
-如果仍提示找不到 `gcc`，可以先重复第 3 步，在当前终端继续编译，再检查持久设置是否成功。如果电脑上装过多个 GCC，可执行：
+如果仍提示找不到 `gcc`，可以先重复第 3 步，让当前终端能够调用 GCC，再检查持久设置是否成功。如果电脑上装过多个 GCC，可执行：
 
 ```powershell
 Get-Command gcc -All | Select-Object Source
@@ -161,81 +184,194 @@ Get-Command gcc -All | Select-Object Source
 
 更多工具链来源见 [MinGW-w64 官方工具链列表](https://www.mingw-w64.org/downloads/)和 [GCC 官方二进制安装说明](https://gcc.gnu.org/install/binaries.html)。
 
-### raylib 是否需要另外安装
+### 安装 CMake
 
-通常不需要。仓库已经包含：
+1. 打开 [CMake 官方下载页](https://cmake.org/download/)，选择稳定版本的 **Windows x64 Installer**。MinGW 路线至少需要 3.25；下述 Visual Studio 2026 路线至少需要 4.2。不要下载源码包或 ARM64 安装包。
+2. 运行安装程序。如果提供 **Add CMake to the system PATH** 选项，选择为当前用户添加到 PATH。默认安装目录通常为 `C:\Program Files\CMake`。
+3. 关闭并重新打开整个 PowerShell、Windows Terminal 或 VS Code，再验证：
+
+```powershell
+cmake --version
+```
+
+若已安装但命令仍找不到，可以在当前 PowerShell 临时添加安装目录，再验证：
+
+```powershell
+$cmakeBin = 'C:\Program Files\CMake\bin'
+Test-Path -LiteralPath (Join-Path $cmakeBin 'cmake.exe')
+```
+
+先确认输出 `True`；安装在其他位置时修改 `$cmakeBin`。然后在同一个终端执行：
+
+```powershell
+$env:Path = "$cmakeBin;$env:Path"
+cmake --version
+```
+
+这个设置只对当前终端生效。需要长期使用时，在 Windows 搜索“编辑账户的环境变量”，编辑用户的 `Path`，新增实际的 CMake `bin` 目录，并重新打开终端。
+
+### MinGW 构建前检查
+
+在同一个 PowerShell 中执行：
+
+```powershell
+cmake --version
+gcc --version
+gcc -dumpmachine
+g++ --version
+mingw32-make --version
+Get-Command cmake, gcc, g++, mingw32-make | Select-Object Name, Source
+```
+
+确认命令均可执行，且 GCC 的目标是 `x86_64-w64-mingw32`。`gcc`、`g++` 和 `mingw32-make` 应来自同一套工具链。
+
+`MinGW Makefiles` 使用 `mingw32-make` 执行构建规则。本指南从 Windows PowerShell 调用 CMake，不要在 Git Bash 或 MSYS shell 中照搬这一生成器的流程。参见 [CMake 的 MinGW Makefiles 说明](https://cmake.org/cmake/help/latest/generator/MinGW%20Makefiles.html)。
+
+## CMake 构建说明
+
+下文的“项目根目录”指包含 `CMakeLists.txt`、`include`、`src`、`programs`、`data` 和 `model` 的目录。
+
+使用 MinGW 时，在该目录执行：
+
+```powershell
+cmake -S . -B build-release -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+cmake --build build-release --parallel
+```
+
+第一条命令配置项目并生成构建文件，第二条命令编译、链接程序。第一条成功后再执行第二条；构建出错时，应先解决错误，再运行程序。
+
+| 参数 | 含义 |
+| --- | --- |
+| `-S .` | 当前目录是源码目录 |
+| `-B build-release` | 将缓存、构建文件和产物放入 `build-release`，目录会自动创建 |
+| `-G "MinGW Makefiles"` | 选择使用 `mingw32-make` 的构建方式 |
+| `-DCMAKE_BUILD_TYPE=Release` | 使用开启优化的 Release 配置，适合训练和运行 |
+| `--build build-release` | 构建此前配置的目录 |
+| `--parallel` | 允许并行编译；也可写 `--parallel 4` 来限制并行任务数 |
+
+命令语法见 [CMake 命令行文档](https://cmake.org/cmake/help/latest/manual/cmake.1.html)。这里只进行构建，不会自动转换数据、启动训练或打开画板。
+
+### MinGW 生成的程序
+
+| 路径 | 用途 |
+| --- | --- |
+| `build-release/bin/digit_app.exe` | 加载已有模型，打开手写识别画板 |
+| `build-release/bin/load_model.exe` | 加载已有模型，在 MNIST 测试集上评估 |
+| `build-release/bin/matrix_demo.exe` | 从头训练网络，评估并保存模型 |
+| `build-release/bin/mnist.exe` | 将原始 IDX 文件转换为矩阵数据 |
+| `build-release/lib/libnn_core.a` | 供上述程序链接的神经网络核心静态库 |
+
+**CMake 不会把 `data` 和 `model` 复制到 `build-release/bin`。** 画板、训练和评估都以当前工作目录查找资源，因此应在项目根目录通过完整相对路径启动，不要先进入 `build-release/bin`。也请使用上表路径，避免误运行根目录中旧的 `.exe`。
+
+修改 C 源码后，通常只需再次运行：
+
+```powershell
+cmake --build build-release --parallel
+```
+
+若要只编译画板及其依赖：
+
+```powershell
+cmake --build build-release --target digit_app --parallel
+```
+
+切换编译器或生成器时，请使用新的构建目录。CMake 会缓存工具链信息，不能把之前的 Visual Studio 构建目录直接当作 MinGW 构建目录使用。
+
+### 使用 MSVC 构建
+
+Windows x64 下已验证 **Visual Studio 2026 + MSVC 19.51**。如果采用此路线，无需安装 GCC 或 `mingw32-make`。
+
+1. 安装 Visual Studio 2026，或对应的 Visual Studio Build Tools。在 Visual Studio Installer 中选择 **“使用 C++ 的桌面开发”**，确认安装 MSVC x64/x86 构建工具和 Windows SDK。具体步骤见 [Microsoft C/C++ 安装说明](https://learn.microsoft.com/en-us/cpp/build/vscpp-step-0-installation)。
+2. 准备 **CMake 4.2 或更新版本**，确认 `cmake --version` 可执行；`Visual Studio 18 2026` 生成器从 CMake 4.2 开始提供，见 [CMake 官方说明](https://cmake.org/cmake/help/latest/generator/Visual%20Studio%2018%202026.html)。
+3. 在项目根目录的 PowerShell 中执行：
+
+```powershell
+cmake -S . -B build-msvc -G "Visual Studio 18 2026" -A x64
+cmake --build build-msvc --config Release --parallel
+```
+
+`-A x64` 选择 64 位目标。Visual Studio 使用多配置构建目录，在构建阶段通过 `--config Release` 选择 Release；此路线不使用 `CMAKE_BUILD_TYPE` 来选择配置。
+
+程序输出到 `build-msvc/bin/Release/`：
+
+| 路径 | 用途 |
+| --- | --- |
+| `build-msvc/bin/Release/digit_app.exe` | 手写识别画板 |
+| `build-msvc/bin/Release/load_model.exe` | 已保存模型的评估 |
+| `build-msvc/bin/Release/matrix_demo.exe` | 从头训练并保存模型 |
+| `build-msvc/bin/Release/mnist.exe` | MNIST 数据转换 |
+
+保持在项目根目录，启动画板：
+
+```powershell
+.\build-msvc\bin\Release\digit_app.exe
+```
+
+下文训练、评估和转换示例默认使用 MinGW 的产物路径。使用 MSVC 时，将每一处 `build-release\bin` 替换为 `build-msvc\bin\Release`，其他步骤相同。例如转换时先进入 `data`，运行 `..\build-msvc\bin\Release\mnist.exe`；评估则从项目根目录运行 `.\build-msvc\bin\Release\load_model.exe`。
+
+修改源码后再次执行 `cmake --build build-msvc --config Release --parallel`。如果只需要命令行工具，在本节配置命令末尾加上 `-DBUILD_DIGIT_APP=OFF`，再执行构建命令即可。
+
+### raylib 如何获取
+
+默认 `BUILD_DIGIT_APP=ON`，CMake 按以下顺序获取 raylib：
+
+1. 如果存在 `third_party/raylib/CMakeLists.txt`，使用这份本地源码。
+2. 否则通过 `FetchContent` 下载官方 raylib 6.0 源码压缩包，并核验配置中的 SHA256。
+3. 将 raylib 与项目一起编译，再链接到画板程序；无需手动填写 `-I`、`-L` 或 Windows 系统库参数。
+
+`third_party/raylib/` 已被 Git 忽略，不随克隆或仓库 ZIP 提供。首次下载失败或需要离线构建时，可以从 [raylib 6.0 源码压缩包](https://github.com/raysan5/raylib/archive/refs/tags/6.0.zip)下载并完整解压，将内容放成：
 
 ```text
-raylib/
-├── include/
-│   ├── raylib.h
-│   ├── raymath.h
-│   └── rlgl.h
-└── lib/
-    └── libraylib.a
+third_party/
+└── raylib/
+    ├── CMakeLists.txt
+    ├── CMakeOptions.txt
+    ├── cmake/
+    ├── src/
+    └── ...
 ```
 
-`build.bat` 已设置头文件和库的搜索路径，并链接 Windows 系统库。请保留这组配套文件，使用兼容的 64 位 MinGW-w64 工具链；不要只替换头文件或混入其他平台、其他编译器的库。
+不要多套一层 `raylib-6.0` 目录，也不要只放 `raylib.h` 和预编译静态库。放置完整源码后，重新执行配置与构建命令即可。本地源码分支不会执行下载压缩包的 SHA256 校验，请使用官方对应版本。
 
-这里使用 raylib 静态库，生成的画板程序不需要另外提供 `raylib.dll`。不同工具链生成的程序可能有不同的运行库依赖，发布编译成品时仍需单独核验。
+默认配置将 raylib 构建为静态库，画板无需另附 `raylib.dll`。若以后分发编译成品，还需要核对所用工具链引入的其他运行库依赖。
 
-相关构建方式见 [raylib 官方 Windows 文档](https://github.com/raysan5/raylib/wiki/Working-on-Windows)。
+### 只构建训练和评估工具
 
-## 获取源码与编译
-
-安装 Git 后，可以执行：
+不需要画板时，可以在独立目录关闭该选项；这条路线不会下载或编译 raylib：
 
 ```powershell
-git clone https://github.com/Rex-YinRX/machine-learning-in-c.git
-cd machine-learning-in-c
-.\build.bat
+cmake -S . -B build-core -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DBUILD_DIGIT_APP=OFF
+cmake --build build-core --parallel
 ```
 
-没有 Git 也可以下载仓库 ZIP 并解压，然后在 PowerShell 中进入包含 `build.bat` 的目录，执行 `.\build.bat`。
+此时生成 `build-core/bin/mnist.exe`、`load_model.exe` 和 `matrix_demo.exe`。执行后文命令时，将 `build-release` 替换为 `build-core`。
 
-**下文中的“项目根目录”，均指包含 `build.bat`、`CMakeLists.txt`、`programs`、`model` 和 `raylib` 的这个目录。** 当前脚本使用相对路径，必须先进入该目录再构建。请确认编译输出中没有错误，再运行生成的程序。
+## 路线一：体验手写识别
 
-脚本会自动创建 `build-bat/bin/`，将四个程序统一输出到该目录。CMake 的产物保存在各自的构建目录中，例如 `build-release/bin/`，与脚本产物分开。
-
-编译将生成四个程序：
-
-| 程序 | 用途 |
-| --- | --- |
-| `build-bat/bin/digit_app.exe` | 加载已有模型，打开手写识别画板 |
-| `build-bat/bin/load_model.exe` | 加载已有模型，在 MNIST 测试集上评估 |
-| `build-bat/bin/matrix_demo.exe` | 从头训练网络，评估并保存模型 |
-| `build-bat/bin/mnist.exe` | 将原始 IDX 文件转换为项目使用的矩阵数据 |
-
-构建只编译程序，不会自动转换数据或启动训练。仓库忽略生成的 `.exe` 文件，需要在本机编译得到。
-
-## 路线一：直接体验手写识别
-
-在项目根目录执行：
+从项目根目录执行：
 
 ```powershell
-.\build-bat\bin\digit_app.exe
+.\build-release\bin\digit_app.exe
 ```
 
-程序会加载 `model/mnist_model.bin`。此路线无需生成 `train_data` 或 `test_data`，也无需运行训练程序。
-
-### 操作方式
+程序加载 `model/mnist_model.bin`，无需转换 MNIST 数据。
 
 | 操作 | 功能 |
 | --- | --- |
-| 按住鼠标左键拖动 | 绘制一位数字，绘制时自动更新预测 |
-| `C` | 清空画布和当前预测 |
-| `Esc` 或关闭窗口 | 退出程序 |
+| 按住鼠标左键拖动 | 绘制一位数字，实时更新预测 |
+| `C` | 清空画布和预测 |
+| `Esc` 或关闭窗口 | 退出 |
 | 调整窗口大小 | 缩放画布、文字和预览 |
 
-左上角显示预测数字，右下角的 **Model input** 显示预处理后真正送入网络的图像。
+左上角显示预测数字，右下角 **Model input** 显示实际送入网络的图像。请每次只画一位 `0–9`；未写完时预测可能跳动，空白和很短的笔画会被过滤。
 
-请每次只画一位 `0–9`。未写完时预测可能跳动；空白和很短的笔画会被过滤。预处理会裁剪前景、保持宽高比将最长边调整到 20 像素，再放入 `28×28` 图像并按灰度重心居中。目前没有倾斜校正，也不支持多位数字的分割识别。
+预处理会裁剪前景，保持宽高比把最长边调整为 20 像素，再放入 `28×28` 图像并按灰度重心居中。目前没有倾斜校正，也不支持多位数字分割。模型对不同笔迹的识别效果可能不同。
 
 ## 路线二：评估已有模型
 
-### 1. 准备数据
+### 1. 转换数据
 
-仓库已经包含四个解压后的 MNIST 原始文件，无需另行下载：
+仓库已包含四个解压后的 MNIST IDX 文件：
 
 ```text
 data/
@@ -245,16 +381,20 @@ data/
 └── t10k-labels.idx1-ubyte
 ```
 
-转换程序要求从 `data` 目录运行，且输出目录必须已经存在。在项目根目录执行以下 **PowerShell** 命令：
+转换工具要求从 `data` 目录运行，且不会自行创建输出目录。在项目根目录执行：
 
 ```powershell
 New-Item -ItemType Directory -Force -Path .\data\train, .\data\test | Out-Null
 Push-Location .\data
-..\build-bat\bin\mnist.exe
-Pop-Location
+try {
+    ..\build-release\bin\mnist.exe
+    if ($LASTEXITCODE -ne 0) { throw 'MNIST conversion failed.' }
+} finally {
+    Pop-Location
+}
 ```
 
-成功时会输出：
+成功时输出：
 
 ```text
 train data saved
@@ -262,44 +402,37 @@ test data saved
 mission finished
 ```
 
-并生成：
+并生成 `data/train/train_data` 和 `data/test/test_data`，合计约 220 MB。两者已被 Git 忽略，首次克隆后需要生成；重复转换会覆盖生成文件。
 
-```text
-data/train/train_data
-data/test/test_data
-```
+每行包含 784 个归一化到 `0～1` 的像素，最后一列为数字标签。训练集 60000 行，测试集 10000 行。
 
-这两个文件合计约 220 MB，已加入 `.gitignore`。Git 不保留空目录，所以第一次克隆后也需要上面的创建目录步骤。重复转换会覆盖这两个生成文件。
+### 2. 执行评估
 
-每行数据由 784 个归一化到 `0～1` 的像素和最后一列数字标签组成：训练集 60000 行，测试集 10000 行。
-
-### 2. 运行评估
-
-回到项目根目录后执行：
+上述命令结束后会回到项目根目录，执行：
 
 ```powershell
-.\build-bat\bin\load_model.exe
+.\build-release\bin\load_model.exe
 ```
 
-仓库当前附带模型的一次本地复测结果：
+附带模型的一次本地复测结果为：
 
 ```text
 test_accuracy=96.77% (9677/10000)
 ```
 
-这是原始 MNIST 测试集上的准确率，不代表鼠标手写输入也有同样的准确率。画板中的书写方式、笔画形状等会影响结果。
+这是原始 MNIST 测试集上的准确率，不代表鼠标手写输入也有相同准确率。
 
 ## 路线三：重新训练
 
-先按“路线二”完成数据转换，再在项目根目录执行：
+先完成数据转换，再从项目根目录执行：
 
 ```powershell
-.\build-bat\bin\matrix_demo.exe
+.\build-release\bin\matrix_demo.exe
 ```
 
-**训练完成后会覆盖 `model/mnist_model.bin`。若需要保留仓库附带模型，请在训练前备份它。**
+**训练完成后会覆盖 `model/mnist_model.bin`，需要保留已有模型时，请提前备份。**
 
-当前默认配置在 `programs/main.c` 中：
+默认训练配置位于 `programs/main.c`：
 
 | 配置 | 默认值 |
 | --- | --- |
@@ -310,48 +443,54 @@ test_accuracy=96.77% (9677/10000)
 | Batch size | `1000` |
 | Epoch 数 | `400` |
 
-训练使用 CPU，400 轮可能需要较长时间，实际耗时取决于硬件和编译优化。可以修改 `programs/main.c` 中的训练参数后重新编译。当前训练循环按固定顺序分批遍历训练集。
+训练使用 CPU，400 轮需要较长时间，具体取决于硬件和优化配置。修改参数后执行 `cmake --build build-release --parallel` 重新编译，再启动训练。
 
-训练日志中的 `loss` 是最后一个批次更新参数后重新计算的损失，`time` 是从训练开始累计的秒数。训练结束后还会输出训练集和测试集准确率。
+当前训练循环按固定顺序分批遍历数据。日志中的 `loss` 是最后一个批次在更新参数后重新计算的损失，`time` 是从训练开始累计的秒数；训练结束后还会输出训练集和测试集准确率。
 
 ## 代码结构
 
 | 文件或目录 | 作用 |
 | --- | --- |
-| `include/matrix.h`、`src/matrix.c` | 矩阵表示、基础运算、矩阵保存与读取 |
-| `include/layer.h`、`src/layer.c` | 网络层、损失和层类型分派 |
-| `include/network.h`、`src/network.c` | 层组合、网络计算、参数更新、模型保存与加载 |
+| `CMakeLists.txt` | 构建核心库、三个命令行程序和可选画板，管理 raylib 依赖 |
+| `include/` | 矩阵、层和网络的公共头文件 |
+| `src/matrix.c` | 矩阵运算与矩阵保存、读取 |
+| `src/layer.c` | 层计算、损失和层类型分派 |
+| `src/network.c` | 层组合、前向反向、参数更新及模型保存、加载 |
 | `programs/main.c` | MNIST 训练入口 |
-| `programs/load_model.c` | 已保存模型的评估入口 |
-| `programs/digit_app.c` | raylib 画板、实时预测与显示 |
-| `programs/digit_preprocess.h`、`programs/digit_preprocess.c` | 手写图像预处理 |
-| `tools/mnist.c` | MNIST IDX 转换工具 |
+| `programs/load_model.c` | 模型评估入口 |
+| `programs/digit_app.c` | raylib 画板与实时预测 |
+| `programs/digit_preprocess.c`、`.h` | 手写图像预处理 |
+| `tools/mnist.c` | MNIST IDX 转换入口 |
+| `data/` | 原始 IDX 文件及本地转换出的矩阵文件 |
 | `model/mnist_model.bin` | 预训练模型 |
-| `raylib/` | 随附的 raylib 头文件与静态库 |
-| `build.bat` | Windows GCC 构建脚本，输出到 `build-bat/bin/` |
-| `CMakeLists.txt` | 计算核心及三个命令行程序的 CMake 构建配置 |
+| `third_party/raylib/` | 可选的本地 raylib 源码，不纳入 Git |
+| `build-release/` | 本地 CMake 缓存、依赖和编译产物，不纳入 Git |
+| `build-msvc/` | MSVC 构建目录，Release 程序位于 `bin/Release/`，不纳入 Git |
 
-多个入口文件各自包含 `main`，需要分别构建为不同的可执行程序。请使用 `build.bat`，或按其中对应目标的命令编译。
+不同入口文件各自包含 `main`。CMake 将它们构建为独立程序，不要把所有 `.c` 一次链接到同一个可执行文件中。
 
 ## 常见问题
 
-| 现象 | 检查方式 |
+| 现象 | 处理方式 |
 | --- | --- |
-| 提示找不到 `gcc` 或不是内部/外部命令 | 按[前面的逐步安装指引](#如果还没有-gcc)检查解压位置、PATH 和实际调用的编译器路径 |
-| 找不到 `raylib.h` | 确认 `raylib/include` 文件完整，并从项目根目录运行构建脚本 |
-| 找不到 `-lraylib` | 确认 `raylib/lib/libraylib.a` 存在，以及库搜索路径正确 |
-| 提示库不兼容或出现链接符号错误 | 检查是否使用 64 位 MinGW-w64，以及头文件、库和工具链是否匹配 |
-| 出现多个 `main` 的定义 | 分别构建四个入口，不要把所有 `.c` 一起链接 |
-| 画板提示 `open model file failed` | 从项目根目录启动，并确认 `model/mnist_model.bin` 存在 |
-| 转换程序提示 `open file failed` | 确认从 `data` 目录运行，四个 IDX 文件存在，且已经创建 `data/train`、`data/test` |
-| 训练或评估提示找不到数据 | 先执行数据转换，并确认当前目录是项目根目录 |
-| 实际手写识别不稳定 | 每次只写一位数字，观察右下角模型输入；模型尚不能保证适应所有人的笔迹 |
+| 找不到 `cmake` | 安装 CMake，并将其 `bin` 加入 PATH，重新打开整个终端应用 |
+| 找不到 `gcc`、`g++` 或提示没有编译器 | 按前面的工具链安装步骤检查完整工具链、PATH 和实际命令路径 |
+| 找不到 `CMAKE_MAKE_PROGRAM` 或 `mingw32-make` | 检查完整 MinGW 工具链中的 `mingw32-make.exe` 是否存在并可在当前终端调用 |
+| 找不到 `Visual Studio 18 2026` 生成器或安装实例 | 确认 CMake 至少为 4.2，且已安装 Visual Studio 2026 或对应 Build Tools 的 C++ 桌面开发组件 |
+| 下载 raylib 失败 | 检查 GitHub 网络访问，或按上文放置完整本地源码后重新配置 |
+| 生成器与已有缓存不匹配 | 使用未配置过的新构建目录，并同时修改配置与构建命令的目录参数 |
+| 构建后没有 `digit_app.exe` | 确认构建成功且 `BUILD_DIGIT_APP=ON`；需要时重新配置并显式添加 `-DBUILD_DIGIT_APP=ON` |
+| 画板提示 `open model file failed` | 从项目根目录运行 `build-release/bin/digit_app.exe`，检查 `model/mnist_model.bin` |
+| 转换时提示 `open file failed` | 确认当前目录为 `data`，四个 IDX 文件存在，且已创建 `data/train`、`data/test` |
+| 训练或评估找不到数据 | 先完成转换，再从项目根目录启动对应程序 |
+| 修改源码后运行效果没变 | 重新构建，并确认运行的是 `build-release/bin` 下的新程序 |
 
-当前矩阵和模型二进制文件按本机的 `size_t`、`float` 内存表示和字节序写入，尚未设计为通用的跨平台交换格式。已有模型和生成数据应在兼容的 64 位环境中使用。
+矩阵和模型二进制文件仍按本机 `size_t`、`float` 的内存表示和字节序写入，并非通用跨平台格式。CMake 管理构建过程，并不会自动改变数据格式或运行时路径；已有模型和数据应在兼容的 64 位环境下使用。
 
 ## 参考资料
 
 - 《深度学习入门：基于 Python 的理论与实现》
 - [MNIST 数据集镜像与说明：CVDF](https://github.com/cvdfoundation/mnist)
-- [raylib](https://github.com/raysan5/raylib)
+- [raylib 官方仓库](https://github.com/raysan5/raylib)
+- [CMake 官方文档](https://cmake.org/documentation/)
 - [MinGW-w64](https://www.mingw-w64.org/)
