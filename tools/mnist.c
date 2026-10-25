@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "..\matrix.h"
+#include "matrix.h"
 
 #define READ_TRAIN_IMG_COUNT 60000
 #define READ_TEST_IMG_COUNT 10000

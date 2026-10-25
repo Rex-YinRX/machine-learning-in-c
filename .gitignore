@@ -6,3 +6,10 @@
 # 转换后的数据
 data/train/train_data
 data/test/test_data
+
+# CMake 构筑文件
+/build/
+/build-*/
+
+# 本地 raylib 源码，可由 CMake 自动下载
+/third_party/raylib/

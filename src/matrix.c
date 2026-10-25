@@ -115,23 +115,6 @@ int mat_copy(Mat dst, Mat src)
     return 1;
 }
 
-int mat_transpose(Mat dst, Mat src)
-{
-    if(src.es == NULL || dst.es == NULL){
-        return 0;
-    }
-    if(dst.rows != src.cols || dst.cols != src.rows){
-        return 0;
-    }
-
-    for(size_t i = 0; i < src.rows; ++i){
-        for(size_t j = 0; j < src.cols; ++j){
-            MAT_AT(dst, j, i) = MAT_AT(src, i, j);
-        }
-    }
-    return 1;
-}
-
 void mat_print(Mat m, const char *name)
 {
     printf("%s = [\n", name);
@@ -160,6 +143,23 @@ int mat_dot(Mat dst, Mat a, Mat b)
             for(size_t k = 0; k < a.cols; k++){
                 MAT_AT(dst, i, j) += MAT_AT(a, i, k) * MAT_AT(b, k, j);
             }
+        }
+    }
+    return 1;
+}
+
+int mat_transpose(Mat dst, Mat src)
+{
+    if(src.es == NULL || dst.es == NULL){
+        return 0;
+    }
+    if(dst.rows != src.cols || dst.cols != src.rows){
+        return 0;
+    }
+
+    for(size_t i = 0; i < src.rows; ++i){
+        for(size_t j = 0; j < src.cols; ++j){
+            MAT_AT(dst, j, i) = MAT_AT(src, i, j);
         }
     }
     return 1;
