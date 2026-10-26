@@ -261,7 +261,7 @@ cmake --build build-release --parallel
 | `build-release/bin/mnist.exe` | 将原始 IDX 文件转换为矩阵数据 |
 | `build-release/lib/libnn_core.a` | 供上述程序链接的神经网络核心静态库 |
 
-**CMake 不会把 `data` 和 `model` 复制到 `build-release/bin`。** 画板、训练和评估都以当前工作目录查找资源，因此应在项目根目录通过完整相对路径启动，不要先进入 `build-release/bin`。也请使用上表路径，避免误运行根目录中旧的 `.exe`。
+**CMake 不会把 `data` 和 `model` 复制到 `build-release/bin`。** 使用默认参数时，画板、训练和评估都以当前工作目录查找资源，因此应在项目根目录通过完整相对路径启动，不要先进入 `build-release/bin`。也请使用上表路径，避免误运行根目录中旧的 `.exe`。
 
 修改 C 源码后，通常只需再次运行：
 
@@ -346,6 +346,26 @@ cmake --build build-core --parallel
 
 此时生成 `build-core/bin/mnist.exe`、`load_model.exe` 和 `matrix_demo.exe`。执行后文命令时，将 `build-release` 替换为 `build-core`。
 
+## 程序参数
+
+画板、评估和训练程序支持以下参数格式：
+
+```text
+digit_app.exe [model_path]
+load_model.exe [model_path test_data_path]
+matrix_demo.exe [train_data_path test_data_path model_output_path]
+```
+
+方括号表示可选参数，实际运行时不要输入方括号。参数可以全部省略；评估和训练的参数必须成组提供，即 `load_model.exe` 要么不传参数，要么同时提供两个路径，`matrix_demo.exe` 要么不传参数，要么同时提供三个路径。画板可以不传参数，或提供一个模型路径。
+
+| 程序 | 省略全部参数时使用的路径 |
+| --- | --- |
+| `digit_app.exe` | 模型：`.\model\mnist_model.bin` |
+| `load_model.exe` | 模型：`.\model\mnist_model.bin`；测试数据：`.\data\test\test_data` |
+| `matrix_demo.exe` | 训练数据：`.\data\train\train_data`；测试数据：`.\data\test\test_data`；模型输出：`.\model\mnist_model.bin` |
+
+运行时仍需写出程序的实际路径，例如 `.\build-release\bin\load_model.exe`。相对路径均以当前工作目录为基准；包含空格的路径请用双引号括起。
+
 ## 路线一：体验手写识别
 
 从项目根目录执行：
@@ -354,7 +374,7 @@ cmake --build build-core --parallel
 .\build-release\bin\digit_app.exe
 ```
 
-程序加载 `model/mnist_model.bin`，无需转换 MNIST 数据。
+不传参数时，程序加载 `model/mnist_model.bin`，无需转换 MNIST 数据。
 
 | 操作 | 功能 |
 | --- | --- |
@@ -418,6 +438,14 @@ mission finished
 .\build-release\bin\load_model.exe
 ```
 
+如果转换时使用了自定义数据目录，例如 `D:\mnist-data`，评估程序不会自动记住这个目录，需要同时指定模型和测试数据路径：
+
+```powershell
+.\build-release\bin\load_model.exe ".\model\mnist_model.bin" "D:\mnist-data\test\test_data"
+```
+
+请将示例中的数据路径替换为自己的实际路径。
+
 附带模型的一次本地复测结果为：
 
 ```text
@@ -434,7 +462,7 @@ test_accuracy=96.77% (9677/10000)
 .\build-release\bin\matrix_demo.exe
 ```
 
-**训练完成后会覆盖 `model/mnist_model.bin`，需要保留已有模型时，请提前备份。**
+**使用默认参数时，训练完成后会覆盖 `model/mnist_model.bin`；指定参数时，会写入或覆盖 `model_output_path`。需要保留已有模型时，请提前备份。**
 
 默认训练配置位于 `programs/main.c`：
 
@@ -484,7 +512,7 @@ test_accuracy=96.77% (9677/10000)
 | 下载 raylib 失败 | 检查 GitHub 网络访问，或按上文放置完整本地源码后重新配置 |
 | 生成器与已有缓存不匹配 | 使用未配置过的新构建目录，并同时修改配置与构建命令的目录参数 |
 | 构建后没有 `digit_app.exe` | 确认构建成功且 `BUILD_DIGIT_APP=ON`；需要时重新配置并显式添加 `-DBUILD_DIGIT_APP=ON` |
-| 画板提示 `open model file failed` | 从项目根目录运行 `build-release/bin/digit_app.exe`，检查 `model/mnist_model.bin` |
+| 画板提示模型文件打开失败 | 检查报错中显示的实际模型路径；未传参数时，默认使用当前工作目录下的 `.\model\mnist_model.bin`，请确认文件存在 |
 | 转换时提示文件打开失败 | 检查默认的 `.\data` 或传入的数据目录，并根据报错中的具体路径确认文件是否存在；确认该目录包含四个 IDX 文件，且已提前创建 `train`、`test` 子目录 |
 | 训练或评估找不到数据 | 先完成转换，再从项目根目录启动对应程序 |
 | 修改源码后运行效果没变 | 重新构建，并确认运行的是 `build-release/bin` 下的新程序 |

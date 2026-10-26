@@ -56,9 +56,15 @@ int main(int argc, char *argv[])
 {
     srand(time(0));
 
+#ifdef _WIN32
     const char *train_path = ".\\data\\train\\train_data";
     const char *test_path = ".\\data\\test\\test_data";
     const char *model_path = ".\\model\\mnist_model.bin";
+#else
+    const char *train_path = "./data/train/train_data";
+    const char *test_path = "./data/test/test_data";
+    const char *model_path = "./model/mnist_model.bin";
+#endif
 
     if (argc == 4) {
         train_path = argv[1];

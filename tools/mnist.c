@@ -30,7 +30,13 @@ void img_print(const uint8_t *pixels, size_t rows, size_t cols)
 
 int main(int argc, char *argv[])
 {
+#ifdef _WIN32
     const char *data_dir = ".\\data";
+    const char *path_separator = "\\";
+#else
+    const char *data_dir = "./data";
+    const char *path_separator = "/";
+#endif
 
     if(argc == 2){
         data_dir = argv[1];
@@ -44,8 +50,13 @@ int main(int argc, char *argv[])
         "train-labels.idx1-ubyte",
         "t10k-images.idx3-ubyte",
         "t10k-labels.idx1-ubyte",
+#ifdef _WIN32
         "train\\train_data",
         "test\\test_data"
+#else
+        "train/train_data",
+        "test/test_data"
+#endif
     };
 
     char paths[6][1024];
@@ -53,8 +64,9 @@ int main(int argc, char *argv[])
     for(size_t i = 0; i < 6; i++){
         int n = snprintf(paths[i],
             sizeof(paths[i]),
-            "%s\\%s",
+            "%s%s%s",
             data_dir,
+            path_separator,
             file_names[i]
         );
 
@@ -64,7 +76,7 @@ int main(int argc, char *argv[])
         }
 
         if((size_t)n >= sizeof(paths[i])){
-            fprintf(stderr, "Path too long: %s\\%s\n", data_dir, file_names[i]);
+            fprintf(stderr, "Path too long: %s%s%s\n", data_dir, path_separator, file_names[i]);
             return 1;
         }
     }

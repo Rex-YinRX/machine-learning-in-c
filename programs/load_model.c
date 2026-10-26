@@ -7,8 +7,13 @@
 
 int main(int argc, char *argv[])
 {
+#ifdef _WIN32
     const char *model_path = ".\\model\\mnist_model.bin";
     const char *test_path = ".\\data\\test\\test_data";
+#else
+    const char *model_path = "./model/mnist_model.bin";
+    const char *test_path = "./data/test/test_data";
+#endif
 
     if(argc == 3){
         model_path = argv[1];

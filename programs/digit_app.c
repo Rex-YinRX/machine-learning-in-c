@@ -60,7 +60,11 @@ static int ui_scaled_size(int base, float scale, int minimum)
 
 int main(int argc, char *argv[])
 {
+#ifdef _WIN32
     const char *model_path = ".\\model\\mnist_model.bin";
+#else
+    const char *model_path = "./model/mnist_model.bin";
+#endif
 
     if(argc == 2){
         model_path = argv[1];
