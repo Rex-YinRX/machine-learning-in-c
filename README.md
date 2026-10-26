@@ -307,7 +307,7 @@ cmake --build build-msvc --config Release --parallel
 .\build-msvc\bin\Release\digit_app.exe
 ```
 
-下文训练、评估和转换示例默认使用 MinGW 的产物路径。使用 MSVC 时，将每一处 `build-release\bin` 替换为 `build-msvc\bin\Release`，其他步骤相同。例如转换时先进入 `data`，运行 `..\build-msvc\bin\Release\mnist.exe`；评估则从项目根目录运行 `.\build-msvc\bin\Release\load_model.exe`。
+下文训练、评估和转换示例默认使用 MinGW 的产物路径。使用 MSVC 时，将每一处 `build-release\bin` 替换为 `build-msvc\bin\Release`，其他步骤相同。转换和评估都从项目根目录运行，例如 `.\build-msvc\bin\Release\mnist.exe` 和 `.\build-msvc\bin\Release\load_model.exe`。
 
 修改源码后再次执行 `cmake --build build-msvc --config Release --parallel`。如果只需要命令行工具，在本节配置命令末尾加上 `-DBUILD_DIGIT_APP=OFF`，再执行构建命令即可。
 
@@ -381,17 +381,13 @@ data/
 └── t10k-labels.idx1-ubyte
 ```
 
-转换工具要求从 `data` 目录运行，且不会自行创建输出目录。在项目根目录执行：
+转换工具默认读取当前工作目录下的 `data`，即 `.\data`，并将结果写入其中的 `train`、`test` 子目录。输出目录需要提前创建，程序不会自行创建。在项目根目录执行：
 
 ```powershell
 New-Item -ItemType Directory -Force -Path .\data\train, .\data\test | Out-Null
-Push-Location .\data
-try {
-    ..\build-release\bin\mnist.exe
-    if ($LASTEXITCODE -ne 0) { throw 'MNIST conversion failed.' }
-} finally {
-    Pop-Location
-}
+
+.\build-release\bin\mnist.exe
+if ($LASTEXITCODE -ne 0) { throw 'MNIST conversion failed.' }
 ```
 
 成功时输出：
@@ -406,9 +402,17 @@ mission finished
 
 每行包含 784 个归一化到 `0～1` 的像素，最后一列为数字标签。训练集 60000 行，测试集 10000 行。
 
+也可以通过命令行参数指定数据目录：
+
+```powershell
+.\build-release\bin\mnist.exe "D:\mnist-data"
+```
+
+`D:\mnist-data` 是示例路径，需要替换成自己的目录。该目录应包含上面列出的四个 IDX 文件，以及提前创建的 `train`、`test` 子目录。转换结果会写入该目录下的 `train/train_data` 和 `test/test_data`。
+
 ### 2. 执行评估
 
-上述命令结束后会回到项目根目录，执行：
+保持在项目根目录，执行：
 
 ```powershell
 .\build-release\bin\load_model.exe
@@ -481,7 +485,7 @@ test_accuracy=96.77% (9677/10000)
 | 生成器与已有缓存不匹配 | 使用未配置过的新构建目录，并同时修改配置与构建命令的目录参数 |
 | 构建后没有 `digit_app.exe` | 确认构建成功且 `BUILD_DIGIT_APP=ON`；需要时重新配置并显式添加 `-DBUILD_DIGIT_APP=ON` |
 | 画板提示 `open model file failed` | 从项目根目录运行 `build-release/bin/digit_app.exe`，检查 `model/mnist_model.bin` |
-| 转换时提示 `open file failed` | 确认当前目录为 `data`，四个 IDX 文件存在，且已创建 `data/train`、`data/test` |
+| 转换时提示文件打开失败 | 检查默认的 `.\data` 或传入的数据目录，并根据报错中的具体路径确认文件是否存在；确认该目录包含四个 IDX 文件，且已提前创建 `train`、`test` 子目录 |
 | 训练或评估找不到数据 | 先完成转换，再从项目根目录启动对应程序 |
 | 修改源码后运行效果没变 | 重新构建，并确认运行的是 `build-release/bin` 下的新程序 |
 

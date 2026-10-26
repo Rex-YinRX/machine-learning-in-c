@@ -52,18 +52,52 @@ double dataset_accuracy(Network *net, Mat data, Mat score_buffer, size_t *correc
     return (double)correct / (double)data.rows;
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
     srand(time(0));
 
-    FILE *tdata = fopen(".\\data\\train\\train_data", "rb");
+    const char *train_path = ".\\data\\train\\train_data";
+    const char *test_path = ".\\data\\test\\test_data";
+    const char *model_path = ".\\model\\mnist_model.bin";
+
+    if (argc == 4) {
+        train_path = argv[1];
+        test_path = argv[2];
+        model_path = argv[3];
+    } else if (argc != 1) {
+        fprintf(stderr,
+                "Usage: \"%s\" [train_data_path test_data_path model_output_path]\n",
+                argv[0]);
+        return 1;
+    }
+
+    FILE *tdata = fopen(train_path, "rb");
     if (tdata == NULL) {
-        perror("open file failed");
+        perror(train_path);
         return 1;
     }
 
     Mat td = mat_load(tdata);
     fclose(tdata);
+    if (td.es == NULL) {
+        fprintf(stderr, "load training data failed: %s\n", train_path);
+        return 1;
+    }
+
+    FILE *test_file = fopen(test_path, "rb");
+    if (test_file == NULL) {
+        perror(test_path);
+        mat_free(&td);
+        return 1;
+    }
+    Mat test_td = mat_load(test_file);
+    fclose(test_file);
+    if (test_td.es == NULL) {
+        fprintf(stderr, "load test data failed: %s\n", test_path);
+        mat_free(&td);
+        return 1;
+    }
+
     Mat ti = {
         .rows = td.rows,
         .cols = IMG_LENGTH*IMG_WIDTH,
@@ -133,14 +167,6 @@ int main(void)
     softmax_with_loss_forward(&batch_loss, batch_scores, batch_labels, batch_x.rows);
     printf("final_last_batch_loss=%.6f\n", batch_loss.loss);
 
-    FILE *test_file = fopen(".\\data\\test\\test_data", "rb");
-    if (test_file == NULL) {
-        perror("open test data failed");
-        return 1;
-    }
-    Mat test_td = mat_load(test_file);
-    fclose(test_file);
-
     size_t train_correct = 0;
     size_t test_correct = 0;
     double train_accuracy = dataset_accuracy(&net, td, batch_scores, &train_correct);
@@ -149,10 +175,13 @@ int main(void)
     printf("train_accuracy=%.2f%% (%zu/%zu)\n", 100.0 * train_accuracy, train_correct, td.rows);
     printf("test_accuracy=%.2f%% (%zu/%zu)\n", 100.0 * test_accuracy, test_correct, test_td.rows);
 
-    FILE *model_file = fopen(".\\model\\mnist_model.bin", "wb");
+    int exit_code = 0;
+
+    FILE *model_file = fopen(model_path, "wb");
 
     if (model_file == NULL) {
-        perror("open model file failed");
+        perror(model_path);
+        exit_code = 1;
     } else {
         network_save(model_file, &net);
         printf("model saved");
@@ -167,5 +196,5 @@ int main(void)
     mat_free(&test_td);
     softmax_with_loss_free(&batch_loss);
     network_free(&net);
-    return 0;
+    return exit_code;
 }

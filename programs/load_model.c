@@ -5,11 +5,24 @@
 #define IMG_LENGTH 28
 #define LABEL_COUNT 10
 
-int main(void)
+int main(int argc, char *argv[])
 {
-    FILE *model = fopen(".\\model\\mnist_model.bin", "rb");
+    const char *model_path = ".\\model\\mnist_model.bin";
+    const char *test_path = ".\\data\\test\\test_data";
+
+    if(argc == 3){
+        model_path = argv[1];
+        test_path = argv[2];
+    }else if(argc != 1){
+        fprintf(stderr,
+                "Usage: \"%s\" [model_path test_data_path]\n",
+                argv[0]);
+        return 1;
+    }
+
+    FILE *model = fopen(model_path, "rb");
     if (model == NULL) {
-        perror("open file failed");
+        perror(model_path);
         return 1;
     }
     Network net = network_load(model);
@@ -20,9 +33,9 @@ int main(void)
         return 1;
     }
 
-    FILE *test_file = fopen(".\\data\\test\\test_data", "rb");
+    FILE *test_file = fopen(test_path, "rb");
     if (test_file == NULL) {
-        perror("open test data failed");
+        perror(test_path);
         network_free(&net);
         return 1;
     }

@@ -28,28 +28,66 @@ void img_print(const uint8_t *pixels, size_t rows, size_t cols)
     }
 }
 
-int main()
+int main(int argc, char *argv[])
 {
-    
-    FILE* img_fp = fopen("train-images.idx3-ubyte", "rb");
-    if (img_fp == NULL) {
-        perror("open file failed");
-        return 1;
-    }
-    FILE* label_fp = fopen("train-labels.idx1-ubyte", "rb");
-    if (label_fp == NULL) {
-        perror("open file failed");
+    const char *data_dir = ".\\data";
+
+    if(argc == 2){
+        data_dir = argv[1];
+    }else if(argc != 1){
+        fprintf(stderr, "Usage: \"%s\" [data_dir]\n", argv[0]);
         return 1;
     }
 
-    FILE* ts_img_fp = fopen("t10k-images.idx3-ubyte", "rb");
-    if (ts_img_fp == NULL) {
-        perror("open file failed");
+    const char *file_names[6] = {
+        "train-images.idx3-ubyte",
+        "train-labels.idx1-ubyte",
+        "t10k-images.idx3-ubyte",
+        "t10k-labels.idx1-ubyte",
+        "train\\train_data",
+        "test\\test_data"
+    };
+
+    char paths[6][1024];
+
+    for(size_t i = 0; i < 6; i++){
+        int n = snprintf(paths[i],
+            sizeof(paths[i]),
+            "%s\\%s",
+            data_dir,
+            file_names[i]
+        );
+
+        if(n < 0){
+            fprintf(stderr, "Path formatting failed\n");
+            return 1;
+        }
+
+        if((size_t)n >= sizeof(paths[i])){
+            fprintf(stderr, "Path too long: %s\\%s\n", data_dir, file_names[i]);
+            return 1;
+        }
+    }
+    
+    FILE* img_fp = fopen(paths[0], "rb");
+    if (img_fp == NULL) {
+        perror(paths[0]);
         return 1;
     }
-    FILE* ts_label_fp = fopen("t10k-labels.idx1-ubyte", "rb");
+    FILE* label_fp = fopen(paths[1], "rb");
+    if (label_fp == NULL) {
+        perror(paths[1]);
+        return 1;
+    }
+
+    FILE* ts_img_fp = fopen(paths[2], "rb");
+    if (ts_img_fp == NULL) {
+        perror(paths[2]);
+        return 1;
+    }
+    FILE* ts_label_fp = fopen(paths[3], "rb");
     if (ts_label_fp == NULL) {
-        perror("open file failed");
+        perror(paths[3]);
         return 1;
     }
 
@@ -99,9 +137,9 @@ int main()
     }
     //MAT_PRINT(img);
 
-    FILE* out = fopen(".\\train\\train_data", "wb");
+    FILE* out = fopen(paths[4], "wb");
     if (out == NULL) {
-        perror("open file failed");
+        perror(paths[4]);
         return 1;
     }
     mat_save(out, img);
@@ -120,9 +158,9 @@ int main()
     }
     //MAT_PRINT(ts_img);
 
-    FILE* ts_out = fopen(".\\test\\test_data", "wb");
+    FILE* ts_out = fopen(paths[5], "wb");
     if (ts_out == NULL) {
-        perror("open file failed");
+        perror(paths[5]);
         return 1;
     }
     mat_save(ts_out, ts_img);

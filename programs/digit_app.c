@@ -58,11 +58,22 @@ static int ui_scaled_size(int base, float scale, int minimum)
     return size < minimum ? minimum : size;
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
-    FILE *model = fopen(".\\model\\mnist_model.bin", "rb");
+    const char *model_path = ".\\model\\mnist_model.bin";
+
+    if(argc == 2){
+        model_path = argv[1];
+    }else if(argc != 1){
+        fprintf(stderr,
+                "Usage: \"%s\" [model_path]\n",
+                argv[0]);
+        return 1;
+    }
+
+    FILE *model = fopen(model_path, "rb");
     if (model == NULL) {
-        perror("open model file failed");
+        perror(model_path);
         return 1;
     }
     Network net = network_load(model);
