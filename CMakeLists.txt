@@ -36,7 +36,7 @@ target_link_libraries(matrix_demo PRIVATE nn_core)
 add_executable(mnist tools/mnist.c)
 target_link_libraries(mnist PRIVATE nn_core)
 
-option(BUILD_DIGIT_APP "Build handwritten digit app" ON)
+option(BUILD_DIGIT_APP "Build handwritten digit apps and dataset tools" ON)
 
 if(BUILD_DIGIT_APP)
     set(BUILD_EXAMPLES OFF CACHE BOOL "Build raylib examples")
@@ -61,4 +61,29 @@ if(BUILD_DIGIT_APP)
     )
 
     target_link_libraries(digit_app PRIVATE nn_core raylib)
+
+    add_library(handwritten_data STATIC
+        tools/handwritten_dataset.c
+        programs/digit_preprocess.c
+    )
+    target_include_directories(handwritten_data PUBLIC
+        "${CMAKE_CURRENT_SOURCE_DIR}/tools"
+        "${CMAKE_CURRENT_SOURCE_DIR}/programs"
+    )
+    target_link_libraries(handwritten_data PUBLIC nn_core raylib)
+
+    add_executable(digit_collect tools/digit_collect.c)
+    target_link_libraries(digit_collect PRIVATE handwritten_data)
+
+    add_executable(digit_dataset tools/digit_dataset.c)
+    target_link_libraries(digit_dataset PRIVATE handwritten_data)
+
+    foreach(handwritten_target handwritten_data digit_collect digit_dataset)
+        if(MSVC)
+            target_compile_options(${handwritten_target} PRIVATE /W4)
+        elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+            target_compile_options(${handwritten_target} PRIVATE -Wall -Wextra -Wpedantic)
+        endif()
+    endforeach()
+
 endif()

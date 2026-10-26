@@ -1,6 +1,7 @@
 #include "digit_preprocess.h"
 
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 enum { SIDE = 28, PIXELS = SIDE * SIDE, TARGET = 20 };
@@ -11,6 +12,34 @@ static float brightness(float value)
         return 0.0f;
     }
     return value > 1.0f ? 1.0f : value;
+}
+
+/* Bilinear sampling; neighbors outside the image contribute zero. */
+static inline float sample_bilinear(const float *src, float x, float y)
+{
+    if (src == NULL || !isfinite(x) || !isfinite(y) ||
+        x <= -1.0f || x >= (float)SIDE ||
+        y <= -1.0f || y >= (float)SIDE) {
+        return 0.0f;
+    }
+
+    int x0 = (int)floorf(x);
+    int y0 = (int)floorf(y);
+    float fx = x - x0;
+    float fy = y - y0;
+    float sum = 0.0f;
+    for (int j = 0; j < 2; ++j) {
+        for (int i = 0; i < 2; ++i) {
+            int col = x0 + i;
+            int row = y0 + j;
+            if (col >= 0 && col < SIDE && row >= 0 && row < SIDE) {
+                float wx = i ? fx : 1.0f - fx;
+                float wy = j ? fy : 1.0f - fy;
+                sum += brightness(src[row * SIDE + col]) * wx * wy;
+            }
+        }
+    }
+    return brightness(sum);
 }
 
 /* Area averaging keeps narrow strokes when the crop is reduced. */
@@ -131,4 +160,98 @@ int digit_prepare(float *dst, const float *src)
         dst[i] = brightness(centered[i]);
     }
     return 1;
+}
+
+int digit_translate(float *dst, const float *src, int dx, int dy)
+{
+    if (dst == NULL || src == NULL || dst == src ||
+        dx < -(SIDE - 1) || dx > SIDE - 1 ||
+        dy < -(SIDE - 1) || dy > SIDE - 1) {
+        return 0;
+    }
+
+    for (int y = 0; y < SIDE; ++y) {
+        for (int x = 0; x < SIDE; ++x) {
+            int source_x = x - dx;
+            int source_y = y - dy;
+            if (source_x >= 0 && source_x < SIDE &&
+                source_y >= 0 && source_y < SIDE) {
+                dst[y * SIDE + x] = src[source_y * SIDE + source_x];
+            } else {
+                dst[y * SIDE + x] = 0.0f;
+            }
+        }
+    }
+    return 1;
+}
+
+int digit_scale(float *dst, const float *src, float scale)
+{
+    if (dst == NULL || src == NULL || dst == src ||
+        !isfinite(scale) || scale <= 0.0f) {
+        return 0;
+    }
+
+    const float center = 13.5f;
+    for (int y = 0; y < SIDE; ++y) {
+        for (int x = 0; x < SIDE; ++x) {
+            float source_x = center + (x - center) / scale;
+            float source_y = center + (y - center) / scale;
+            dst[y * SIDE + x] = sample_bilinear(src, source_x, source_y);
+        }
+    }
+    return 1;
+}
+
+int digit_rotate(float *dst, const float *src, float degrees)
+{
+    if (dst == NULL || src == NULL || dst == src || !isfinite(degrees)) {
+        return 0;
+    }
+
+    const float center = 13.5f;
+    float radians = fmodf(degrees, 360.0f) * 0.017453292519943295f;
+    float c = cosf(radians);
+    float s = sinf(radians);
+    for (int y = 0; y < SIDE; ++y) {
+        for (int x = 0; x < SIDE; ++x) {
+            float u = x - center;
+            float v = y - center;
+            /* Inverse mapping; positive angles look clockwise with y down. */
+            float source_x = center + c * u + s * v;
+            float source_y = center - s * u + c * v;
+            dst[y * SIDE + x] = sample_bilinear(src, source_x, source_y);
+        }
+    }
+    return 1;
+}
+
+int digit_augment(float *dst, const float *src, const DigitAugment *config)
+{
+    if (dst == NULL || src == NULL || config == NULL || dst == src) {
+        return 0;
+    }
+
+    float scaled[PIXELS];
+    float rotated[PIXELS];
+    if (!digit_scale(scaled, src, config->scale)) {
+        return 0;
+    }
+    if (!digit_rotate(rotated, scaled, config->degrees)) {
+        return 0;
+    }
+    if (!digit_translate(dst, rotated, config->dx, config->dy)) {
+        return 0;
+    }
+    return 1;
+}
+
+DigitAugment digit_random_config(void)
+{
+    DigitAugment config;
+    config.scale = 0.9f + 0.2f * ((float)rand() / (float)RAND_MAX);
+    config.degrees = -10.0f + 20.0f * ((float)rand() / (float)RAND_MAX);
+    config.dx = rand() % 5 - 2;
+    config.dy = rand() % 5 - 2;
+    return config;
 }
