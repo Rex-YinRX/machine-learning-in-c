@@ -4,7 +4,44 @@
 
 目前已实现 MNIST 全连接网络训练、模型保存与加载、手写数字识别画板，以及人工标注采集、平移/缩放/旋转增强和单一数据集导出。网络计算使用 CPU，无需 CUDA。项目使用 **CMake** 管理计算核心、公共数据模块和各个独立程序。
 
+## 下载并运行 Windows x64 成品
+
+成品包提供手写数字识别画板和模型，使用时无需安装 GCC、CMake 或 raylib。采集、数据集导出、训练和评估工具可按后文的[快速开始](#快速开始)从源码构建。
+
+### 下载与启动
+
+1. 登录 GitHub，打开本仓库的 [Windows GCC Build 工作流](https://github.com/Rex-YinRX/machine-learning-in-c/actions/workflows/build.yml)。
+2. 选择最新一次成功完成 `Install`、`Package`、`Upload package` 的运行。
+3. 在运行详情页下方的 **Artifacts** 中，下载 `digit-app-windows-x64.zip`。
+4. 完整解压 ZIP，打开解压后的 `digit-app` 文件夹。
+5. 双击其中的 `digit_app.exe`，用鼠标左键绘制一位数字；按 `C` 清空。
+
+解压后保持以下结构，模型文件夹与程序放在同一层：
+
+```text
+digit-app/
+├── digit_app.exe
+└── model/
+    └── mnist_model.bin
+```
+
+如果从终端启动，先进入包含 `digit_app.exe` 的文件夹，再执行：
+
+```powershell
+.\digit_app.exe
+```
+
+默认模型路径相对当前工作目录解析。保留 `model` 文件夹，并从上述目录启动程序。
+
+当前成品使用针对自采手写数字继续训练的模型，详见[模型说明与评估结果](#模型说明与评估结果)。
+
+目前通过 Actions 构建产物提供成品下载。下载需要登录 GitHub，产物会按仓库保留策略过期；请选择仍有下载产物的成功运行。操作步骤见 [GitHub 官方说明](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts)。
+
+仓库页面的 **Code → Download ZIP** 提供源码；使用这份源码包时，按下文准备工具链并构建。
+
 ## 快速开始
+
+本节为源码构建流程，生成画板、采集工具以及训练、评估等程序。
 
 以下命令使用 **Windows x64 + PowerShell + MinGW-w64 GCC**。先确认已经安装 CMake（至少 3.25）和完整 MinGW-w64 工具链，且 `cmake`、`gcc`、`g++`、`mingw32-make` 可以在终端调用。尚未安装时，请先看[环境准备](#环境准备)。
 
@@ -27,7 +64,13 @@ cmake --build build-release --parallel
 .\build-release\bin\digit_app.exe
 ```
 
-仓库已包含预训练模型 `model/mnist_model.bin`，体验识别画板和启动采集画板无需转换 MNIST 数据或重新训练。默认启用 raylib；未提供本地源码时，配置会从 GitHub 下载，也可以[预先放置本地源码](#raylib-如何获取)。
+仓库保留原 MNIST 模型 `model/mnist_model.bin`，上述命令默认加载它，体验画板和启动采集画板无需转换 MNIST 数据或重新训练。要使用与成品相同的手写微调模型，可在项目根目录执行：
+
+```powershell
+.\build-release\bin\digit_app.exe ".\model\handwritten_10ep.bin"
+```
+
+默认启用 raylib；未提供本地源码时，配置会从 GitHub 下载，也可以[预先放置本地源码](#raylib-如何获取)。
 
 ## 已实现的功能
 
@@ -49,7 +92,7 @@ cmake --build build-release --parallel
 | --- | --- | --- |
 | 操作系统与目标架构 | Windows x64 | 本文命令和已有模型的使用环境 |
 | CMake | 项目最低要求 3.25；下述 VS 2026 路线要求至少 4.2，本地使用 4.4.4 | 生成并调用构建系统 |
-| MinGW-w64 工具链 | 本地使用 GCC 14.2.0，含 `gcc`、`g++`、`mingw32-make` | 编译、链接并执行构建任务 |
+| MinGW-w64 工具链 | 本地使用 GCC 14.2.0，Actions 已验证 GCC 15.2.0；包含 `gcc`、`g++`、`mingw32-make` | 编译、链接并执行构建任务 |
 | MSVC 工具链 | 原有四个程序已验证 Visual Studio 2026、MSVC 19.51、x64；新增工具的验证范围见下文 | 编译、链接并通过 MSBuild 构建 |
 | raylib | 未提供本地源码时下载 6.0，启用相关工具时参与构建 | 窗口、输入、绘图及数据工具的文件系统操作 |
 | Git | 可选 | 克隆仓库；也可下载 ZIP |
@@ -293,7 +336,7 @@ cmake --build build-release --target digit_collect digit_dataset --parallel
 
 ### 使用 MSVC 构建
 
-原有的 `digit_app`、`load_model`、`matrix_demo`、`mnist` 已在 Windows x64、**Visual Studio 2026 + MSVC 19.51** 下验证。当前全部目标也已通过 MSVC 的配置、编译和链接，模型评估结果为 96.77%；新增采集、数据集导出工具的交互及完整导出流程尚未在 MSVC 下补做运行验证。如果采用 MSVC 路线，无需安装 GCC 或 `mingw32-make`。
+原有的 `digit_app`、`load_model`、`matrix_demo`、`mnist` 已在 Windows x64、**Visual Studio 2026 + MSVC 19.51** 下验证。当前全部目标也已通过 MSVC 的配置、编译和链接，使用原 MNIST 模型 `model/mnist_model.bin` 的评估结果为 96.77%；新增采集、数据集导出工具的交互及完整导出流程尚未在 MSVC 下补做运行验证。如果采用 MSVC 路线，无需安装 GCC 或 `mingw32-make`。
 
 1. 安装 Visual Studio 2026，或对应的 Visual Studio Build Tools。在 Visual Studio Installer 中选择 **“使用 C++ 的桌面开发”**，确认安装 MSVC x64/x86 构建工具和 Windows SDK。具体步骤见 [Microsoft C/C++ 安装说明](https://learn.microsoft.com/en-us/cpp/build/vscpp-step-0-installation)。
 2. 准备 **CMake 4.2 或更新版本**，确认 `cmake --version` 可执行；`Visual Studio 18 2026` 生成器从 CMake 4.2 开始提供，见 [CMake 官方说明](https://cmake.org/cmake/help/latest/generator/Visual%20Studio%2018%202026.html)。
@@ -350,7 +393,7 @@ third_party/
 
 不要多套一层 `raylib-6.0` 目录，也不要只放 `raylib.h` 和预编译静态库。放置完整源码后，重新执行配置与构建命令即可。本地源码分支不会执行下载压缩包的 SHA256 校验，请使用官方对应版本。
 
-默认配置将 raylib 构建为静态库，相关程序无需另附 `raylib.dll`。若以后分发编译成品，还需要核对所用工具链引入的其他运行库依赖。
+默认配置将 raylib 构建为静态库，相关程序无需另附 `raylib.dll`。当前 Windows x64 成品已完成 DLL 导入检查，并在本机仅保留 Windows 系统目录的 PATH 下通过启动、模型加载和 OpenGL 初始化验证。更换工具链或构建配置后，应重新检查成品的运行依赖。
 
 ### 只构建 MNIST 转换、训练和评估工具
 
@@ -382,7 +425,7 @@ cmake --list-presets=all
 | `msvc-release` | Windows x64，Visual Studio 2026，Release | `build-msvc-release/bin/Release` | 配置、构建和模型评估通过 |
 | `linux-release` | Linux，原生工具链，Release | `build-linux-release/bin` | 已定义，尚未完成本轮实测 |
 
-三组 Windows 预设均已完成当前全部目标的编译、链接，运行各自产物中的 `load_model` 得到 `test_accuracy=96.77% (9677/10000)`。这不代表所有新增工具的交互和数据处理流程都已逐项运行验证；具体范围见各功能章节。
+三组 Windows 预设均已完成当前全部目标的编译、链接，运行各自产物中的 `load_model` 评估仓库原 MNIST 模型，得到 `test_accuracy=96.77% (9677/10000)`。这不代表所有新增工具的交互和数据处理流程都已逐项运行验证；具体范围见各功能章节。
 
 `mingw-debug` 继承 `mingw-release`，仅覆盖构建目录和 `CMAKE_BUILD_TYPE`，因此两种配置的产物互相独立。所有构建预设使用两个并行任务。当前四组预设均启用 `BUILD_DIGIT_APP`，会构建识别画板、采集画板和数据集导出工具。
 
@@ -456,6 +499,39 @@ cmake --build --preset mingw-release --target digit_collect digit_dataset
 修改构建选项后，重新执行对应的 `cmake --preset ...`，再构建。普通 C 源码修改通常直接执行构建预设即可。构建步骤只编译、链接，不会启动训练或数据转换；MNIST 转换目录仍按后文步骤提前创建。程序的相对资源路径仍以当前工作目录为基准，因此请从项目根目录启动，或传入程序支持的绝对资源路径。
 
 `CMakePresets.json` 应随源码提交到 Git。上述 `build-*` 目录已由 `.gitignore` 忽略，不应上传。预设格式与字段见 [CMake Presets 官方文档](https://cmake.org/cmake/help/v3.25/manual/cmake-presets.7.html)。
+
+## 安装、打包与自动构建
+
+### 本地生成 Windows x64 成品
+
+在项目根目录使用已验证的 MinGW Release 预设：
+
+```powershell
+cmake --preset mingw-release
+cmake --build --preset mingw-release
+cmake --install build-mingw-release --prefix "$PWD/dist/digit-app" --component digit_app
+Compress-Archive -Path .\dist\digit-app -DestinationPath .\dist\digit-app-windows-x64.zip -Force
+```
+
+`cmake --install` 将画板和模型复制到指定目录，本身不执行编译。`--component digit_app` 选择画板的安装规则。ZIP 会包含完整的 `digit-app` 文件夹。
+
+发布目录为 `dist/digit-app`，压缩包为 `dist/digit-app-windows-x64.zip`。`dist/` 已加入 `.gitignore`，由构建和打包命令生成。
+
+启动本地安装的画板：
+
+```powershell
+Push-Location .\dist\digit-app
+.\digit_app.exe
+Pop-Location
+```
+
+### GitHub Actions
+
+[构建工作流](.github/workflows/build.yml) 在推送代码、创建或更新 Pull Request 时运行，也可在工作流页面通过 **Run workflow** 手动触发。
+
+当前工作流使用 Windows 和 MinGW-w64 GCC，复用 `mingw-release` 预设，依次执行工具检查、配置、构建、安装、压缩和上传。已验证的运行使用 GCC 15.2.0、CMake 4.4.4；实际版本可在每次运行的 `Check tools` 日志中查看。
+
+上传成功后，运行详情页的 **Artifacts** 提供 `digit-app-windows-x64.zip` 下载。此流程验证构建和打包，画板交互另行运行验收。安装规则引用的新模型需要与配置一起纳入 Git，供构建机器读取。
 
 ## 程序参数
 
@@ -638,13 +714,23 @@ mission finished
 
 请将示例中的数据路径替换为自己的实际路径。
 
-附带模型的一次本地复测结果为：
+### 模型说明与评估结果
 
-```text
-test_accuracy=96.77% (9677/10000)
+仓库保留两份模型。以下结果是在同一份 10000 张 MNIST 测试数据上，使用现有 `load_model` 程序于 2026-10-27 复测得到的：
+
+| 仓库中的模型 | 用途 | MNIST 测试准确率 |
+| --- | --- | --- |
+| `model/mnist_model.bin` | 原 MNIST 训练模型；源码运行时的默认模型 | 96.77%（9677/10000） |
+| `model/handwritten_10ep.bin` | 针对自采手写数字继续训练的模型；当前成品采用它 | 90.28%（9028/10000） |
+
+在完成前面的数据转换后，可以分别评估：
+
+```powershell
+.\build-release\bin\load_model.exe ".\model\mnist_model.bin" ".\data\test\test_data"
+.\build-release\bin\load_model.exe ".\model\handwritten_10ep.bin" ".\data\test\test_data"
 ```
 
-这是原始 MNIST 测试集上的准确率，不代表鼠标手写输入也有相同准确率。
+这两个数值衡量的是原始 MNIST 测试集上的识别效果。手写微调改变了训练数据分布，MNIST 准确率下降不能单独说明画板手写效果变差，也不能据此证明手写效果已经提升。实际手写效果需要用未参与训练的独立手写样本另行评估。
 
 ## 继续训练已有模型
 
@@ -702,6 +788,7 @@ cmake --build build-release --target continue_train --parallel
 | --- | --- |
 | `CMakeLists.txt` | 管理 `nn_core`、`handwritten_data` 两个公共静态库及七个独立程序，管理 raylib 依赖 |
 | `CMakePresets.json` | 共享 MinGW、MSVC、Linux 构建预设，管理独立构建目录及平台筛选 |
+| `.github/workflows/build.yml` | Windows GCC 自动构建、安装、打包和产物上传 |
 | `include/` | 矩阵、层和网络的公共头文件 |
 | `src/matrix.c` | 矩阵运算与矩阵保存、读取 |
 | `src/layer.c` | 层计算、损失和层类型分派 |
@@ -716,10 +803,12 @@ cmake --build build-release --target continue_train --parallel
 | `tools/digit_dataset.c` | 解析导出参数、调用公共模块并打印结果的命令行入口 |
 | `tools/handwritten_dataset.c`、`.h` | 原图/增强包保存、文件校验和数据集合并生成，供两个入口共用 |
 | `data/` | 原始 IDX、本地转换矩阵及 `handwritten/` 下的采集/增强/导出数据 |
-| `model/mnist_model.bin` | 预训练模型 |
+| `model/mnist_model.bin` | 原 MNIST 预训练模型，源码运行时默认加载 |
+| `model/handwritten_10ep.bin` | 手写微调模型，用于当前画板成品 |
 | `third_party/raylib/` | 可选的本地 raylib 源码，不纳入 Git |
 | `build-release/` | 本地 CMake 缓存、依赖和编译产物，不纳入 Git |
 | `build-msvc/` | MSVC 构建目录，Release 程序位于 `bin/Release/`，不纳入 Git |
+| `dist/` | 本地安装目录和成品 ZIP，由命令生成，不纳入 Git |
 
 七个入口文件各自包含 `main`，CMake 将它们构建为独立程序；`handwritten_dataset.c` 是公共功能模块，没有 `main`。采集画板按 E 和运行 `digit_dataset` 都调用同一个导出实现。不要把所有 `.c` 一次链接到同一个可执行文件中。
 
@@ -734,7 +823,7 @@ cmake --build build-release --target continue_train --parallel
 | 下载 raylib 失败 | 检查 GitHub 网络访问，或按上文放置完整本地源码后重新配置 |
 | 生成器与已有缓存不匹配 | 使用未配置过的新构建目录，并同时修改配置与构建命令的目录参数 |
 | 构建后没有 `digit_app.exe`、`digit_collect.exe` 或 `digit_dataset.exe` | 三者都受 `BUILD_DIGIT_APP` 控制；确认构建成功且该选项为 `ON`，需要时重新配置并添加 `-DBUILD_DIGIT_APP=ON` |
-| 画板提示模型文件打开失败 | 检查报错中显示的实际模型路径；未传参数时，默认使用当前工作目录下的 `.\model\mnist_model.bin`，请确认文件存在 |
+| 画板提示模型文件打开失败 | 检查报错中显示的实际模型路径；默认读取当前工作目录下的 `.\model\mnist_model.bin`。成品完整解压后，从含 exe 的 `digit-app` 目录启动，并保留 `model` 文件夹；源码运行时从项目根目录启动 |
 | 转换时提示文件打开失败 | 检查默认的 `.\data` 或传入的数据目录，并根据报错中的具体路径确认文件是否存在；确认该目录包含四个 IDX 文件，且已提前创建 `train`、`test` 子目录 |
 | 训练或评估找不到数据 | 先完成转换，再从项目根目录启动对应程序 |
 | 采集或导出提示没有原图 | 先选择真实标签并按 S 保存；E 和命令行只读取数据目录的 `raw/*.cmat`，不读取未保存画布 |
