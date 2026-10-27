@@ -10,11 +10,10 @@
 
 ### 下载与启动
 
-1. 登录 GitHub，打开本仓库的 [Windows GCC Build 工作流](https://github.com/Rex-YinRX/machine-learning-in-c/actions/workflows/build.yml)。
-2. 选择最新一次成功完成 `Install`、`Package`、`Upload package` 的运行。
-3. 在运行详情页下方的 **Artifacts** 中，下载 `digit-app-windows-x64.zip`。
-4. 完整解压 ZIP，打开解压后的 `digit-app` 文件夹。
-5. 双击其中的 `digit_app.exe`，用鼠标左键绘制一位数字；按 `C` 清空。
+1. 打开本项目的 [最新 Release 页面](https://github.com/Rex-YinRX/machine-learning-in-c/releases/latest)。
+2. 在 **Assets** 中下载 `digit-app-windows-x64.zip`，也可直接下载 [v0.1.0 Windows x64 成品](https://github.com/Rex-YinRX/machine-learning-in-c/releases/download/v0.1.0/digit-app-windows-x64.zip)。
+3. 完整解压 ZIP，打开解压后的 `digit-app` 文件夹。
+4. 双击其中的 `digit_app.exe`，用鼠标左键绘制一位数字；按 `C` 清空。
 
 解压后保持以下结构，模型文件夹与程序放在同一层：
 
@@ -35,7 +34,7 @@ digit-app/
 
 当前成品使用针对自采手写数字继续训练的模型，详见[模型说明与评估结果](#模型说明与评估结果)。
 
-目前通过 Actions 构建产物提供成品下载。下载需要登录 GitHub，产物会按仓库保留策略过期；请选择仍有下载产物的成功运行。操作步骤见 [GitHub 官方说明](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts)。
+开发中的最新构建也可在 [Windows GCC Build 工作流](https://github.com/Rex-YinRX/machine-learning-in-c/actions/workflows/build.yml) 的成功运行详情页中，从 **Artifacts** 下载。Actions 下载需登录 GitHub，并受产物保留期限限制；操作步骤见 [GitHub 官方说明](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts)。
 
 仓库页面的 **Code → Download ZIP** 提供源码；使用这份源码包时，按下文准备工具链并构建。
 
@@ -531,7 +530,7 @@ Pop-Location
 
 当前工作流使用 Windows 和 MinGW-w64 GCC，复用 `mingw-release` 预设，依次执行工具检查、配置、构建、安装、压缩和上传。已验证的运行使用 GCC 15.2.0、CMake 4.4.4；实际版本可在每次运行的 `Check tools` 日志中查看。
 
-上传成功后，运行详情页的 **Artifacts** 提供 `digit-app-windows-x64.zip` 下载。此流程验证构建和打包，画板交互另行运行验收。安装规则引用的新模型需要与配置一起纳入 Git，供构建机器读取。
+上传成功后，运行详情页的 **Artifacts** 提供 `digit-app-windows-x64.zip` 下载。此流程验证构建和打包，画板交互另行运行验收。安装规则引用的新模型需要与配置一起纳入 Git，供构建机器读取。正式版本由维护者在 [Releases 页面](https://github.com/Rex-YinRX/machine-learning-in-c/releases) 创建，并附上对应版本的 ZIP。
 
 ## 程序参数
 
