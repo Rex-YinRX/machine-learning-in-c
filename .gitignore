@@ -13,5 +13,8 @@ data/test/test_data
 
 # 本地 raylib 源码，可由 CMake 自动下载
 /third_party/raylib/
-# Local handwritten samples and generated datasets
+# 本地手写样本和生成数据集
 /data/handwritten/
+/data/handwritten_200/
+
+/dist/

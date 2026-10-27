@@ -65,6 +65,17 @@ if(BUILD_DIGIT_APP)
 
     target_link_libraries(digit_app PRIVATE nn_core raylib)
 
+    install(TARGETS digit_app
+        RUNTIME DESTINATION .
+        COMPONENT digit_app
+    )
+
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/model/handwritten_10ep.bin"
+        DESTINATION model
+        RENAME mnist_model.bin
+        COMPONENT digit_app
+    )
+
     add_library(handwritten_data STATIC
         tools/handwritten_dataset.c
         programs/digit_preprocess.c
