@@ -1,0 +1,34 @@
+name: Windows GCC Build
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  windows-gcc:
+    runs-on: windows-2025
+
+    env:
+      CC: gcc
+      CXX: g++
+
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Check tools
+        run: |
+          cmake --version
+          gcc --version
+          mingw32-make --version
+
+      - name: Configure
+        run: cmake --preset mingw-release
+
+      - name: Build
+        run: cmake --build --preset mingw-release
