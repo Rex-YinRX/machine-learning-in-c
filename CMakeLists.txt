@@ -30,6 +30,9 @@ endif()
 add_executable(load_model programs/load_model.c)
 target_link_libraries(load_model PRIVATE nn_core)
 
+add_executable(continue_train programs/continue_train.c)
+target_link_libraries(continue_train PRIVATE nn_core)
+
 add_executable(matrix_demo programs/main.c)
 target_link_libraries(matrix_demo PRIVATE nn_core)
 

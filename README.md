@@ -259,6 +259,7 @@ cmake --build build-release --parallel
 | --- | --- |
 | `build-release/bin/digit_app.exe` | 加载已有模型，打开手写识别画板 |
 | `build-release/bin/load_model.exe` | 加载已有模型，在 MNIST 测试集上评估 |
+| `build-release/bin/continue_train.exe` | 加载已有模型，在指定数据集继续训练后保存回原路径 |
 | `build-release/bin/matrix_demo.exe` | 从头训练网络，评估并保存模型 |
 | `build-release/bin/mnist.exe` | 将原始 IDX 文件转换为矩阵数据 |
 | `build-release/bin/digit_collect.exe` | 手写样本采集、保存和导出 |
@@ -309,6 +310,7 @@ cmake --build build-msvc --config Release --parallel
 | --- | --- |
 | `build-msvc/bin/Release/digit_app.exe` | 手写识别画板 |
 | `build-msvc/bin/Release/load_model.exe` | 已保存模型的评估 |
+| `build-msvc/bin/Release/continue_train.exe` | 加载已有模型继续训练 |
 | `build-msvc/bin/Release/matrix_demo.exe` | 从头训练并保存模型 |
 | `build-msvc/bin/Release/mnist.exe` | MNIST 数据转换 |
 | `build-msvc/bin/Release/digit_collect.exe` | 手写样本采集、保存和导出 |
@@ -322,7 +324,7 @@ cmake --build build-msvc --config Release --parallel
 
 下文运行示例默认使用 MinGW 的产物路径。使用 MSVC 时，将运行命令中的 `build-release\bin` 换成 `build-msvc\bin\Release`；配置和构建命令使用本节的 MSVC 版本。各程序仍从项目根目录运行，例如 `.\build-msvc\bin\Release\mnist.exe` 和 `.\build-msvc\bin\Release\load_model.exe`。
 
-修改源码后再次执行 `cmake --build build-msvc --config Release --parallel`。如果只需要 MNIST 转换、训练和评估这三个程序，可在配置时添加 `-DBUILD_DIGIT_APP=OFF`。该开关也会关闭采集和数据集导出工具；即使 `digit_dataset` 不打开窗口，当前实现仍需要 raylib 的文件系统功能。
+修改源码后再次执行 `cmake --build build-msvc --config Release --parallel`。如果只需要 MNIST 转换、训练、评估和继续训练这四个命令行程序，可在配置时添加 `-DBUILD_DIGIT_APP=OFF`。该开关也会关闭采集和数据集导出工具；即使 `digit_dataset` 不打开窗口，当前实现仍需要 raylib 的文件系统功能。
 
 ### raylib 如何获取
 
@@ -350,22 +352,23 @@ third_party/
 
 ### 只构建 MNIST 转换、训练和评估工具
 
-只需要 `mnist`、`load_model`、`matrix_demo` 时，可以在独立目录关闭该选项；这条路线不会下载或编译 raylib，也不会生成 `digit_app`、`digit_collect` 或 `digit_dataset`：
+只需要 `mnist`、`load_model`、`matrix_demo`、`continue_train` 时，可以在独立目录关闭该选项；这条路线不会下载或编译 raylib，也不会生成 `digit_app`、`digit_collect` 或 `digit_dataset`：
 
 ```powershell
 cmake -S . -B build-core -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DBUILD_DIGIT_APP=OFF
 cmake --build build-core --parallel
 ```
 
-此时生成 `build-core/bin/mnist.exe`、`load_model.exe` 和 `matrix_demo.exe`。仅在后文的 MNIST 转换、训练、评估命令中将 `build-release` 替换为 `build-core`；采集与数据集导出命令需要启用完整配置。
+此时生成 `build-core/bin/mnist.exe`、`load_model.exe`、`matrix_demo.exe` 和 `continue_train.exe`。仅在后文的 MNIST 转换、训练、评估命令中将 `build-release` 替换为 `build-core`；采集与数据集导出命令需要启用完整配置。
 
 ## 程序参数
 
-当前六个程序的调用形式如下：
+当前七个程序的调用形式如下：
 
 ```text
 digit_app.exe [model_path]
 load_model.exe [model_path test_data_path]
+continue_train.exe model_path data_path epochs
 matrix_demo.exe [train_data_path test_data_path model_output_path]
 mnist.exe [data_dir]
 digit_collect.exe [model_path [data_dir [augment_count]]]
@@ -375,6 +378,7 @@ digit_dataset.exe [data_dir [augment_count [seed]]]
 方括号表示可选参数，实际运行时不要输入方括号：
 
 - `load_model` 和 `matrix_demo` 的路径参数必须成组提供，分别是零个或两个、零个或三个。
+- `continue_train` 必须提供模型路径、数据集路径和正整数 epoch 数；训练完成后保存回同一模型路径。
 - `digit_app`、`mnist` 可以不传参数，或提供一个路径。
 - `digit_collect`、`digit_dataset` 的参数从左到右依次提供；只修改增强数量时，也需要先提供前面的路径。
 
@@ -475,7 +479,7 @@ data/handwritten/
 .\build-release\bin\digit_collect.exe ".\model\mnist_model.bin" ".\data\handwritten" 20
 ```
 
-生成的矩阵使用现有 `CMAT` 格式，可由 `mat_load` 读取。采集和导出不会自动启动训练或覆盖已有模型。当前训练入口的 `BATCH_SIZE` 为 1000，且按整批处理；使用少量自采样本训练前，应调整批量大小并处理不足一批的尾部数据。
+生成的矩阵使用现有 `CMAT` 格式，可由 `mat_load` 读取。采集和导出不会自动启动训练或覆盖已有模型。少量自采样本可用下文的 `continue_train` 继续训练已有模型，它会处理小数据集和尾批；原有 `matrix_demo` 的整批限制见重新训练章节。
 
 `dataset_info.txt` 中的 `label_0_sources`～`label_9_sources` 统计的是各数字的原图份数，而非增强后的行数。这些采集文件和导出结果默认被 Git 忽略，不会加入仓库。
 
@@ -546,6 +550,31 @@ test_accuracy=96.77% (9677/10000)
 
 这是原始 MNIST 测试集上的准确率，不代表鼠标手写输入也有相同准确率。
 
+## 继续训练已有模型
+
+`continue_train` 读取已保存模型和一份 `mat_save` / `CMAT` 格式的数据集，沿用 `programs/main.c` 的逐行打包方式，从已加载的参数继续进行 SGD 更新，不重新随机初始化网络。
+
+重新配置并构建新增目标（以下为 MinGW 路线）：
+
+```powershell
+cmake -S . -B build-release -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+cmake --build build-release --target continue_train --parallel
+```
+
+在项目根目录执行，例如使用第一次导出的手写数据集继续训练 10 个 epoch：
+
+```powershell
+.\build-release\bin\continue_train.exe ".\model\mnist_model.bin" ".\data\handwritten\datasets\000001\dataset.cmat" 10
+```
+
+将数据集路径替换成实际导出的快照；也可使用转换后的 `data/train/train_data`。每行最后一列为整数标签，前面的列为输入特征，必须与加载模型的输入维度匹配。对于当前 MNIST 模型，数据应为 `N×785`，标签范围为 `0～9`。
+
+学习率为 `0.1`，每批最多 `1000` 行，位于 `programs/continue_train.c` 的宏定义中。数据不足 1000 行时仍会训练，末尾不足一批的样本也会参与；每个 epoch 按原数据顺序遍历全部样本。日志中的 `loss` 和 `final_last_batch_loss` 是最后一个批次在本轮更新后重新计算的损失，不是整份数据的平均损失。
+
+**这个程序会覆盖传入的模型路径。需要保留原模型时，请先备份，或传入模型副本的路径。** 保存时先写入同目录的 `模型路径.tmp`，确认写入成功后替换原文件。若替换失败，训练结果会保留在终端提示的临时路径；已有同名 `.tmp` 不会被覆盖，需确认其内容并处理后再重试。
+
+当前程序继续训练的是已有结构和参数；epoch 数必须是正整数，不会自动改变网络结构、划分验证集或混入其他训练数据。本轮已通过 MinGW-w64 GCC 14.2.0 和 MSVC 19.51 的 CMake 构建及小数据集数值验证。
+
 ## 路线三：重新训练
 
 先完成数据转换，再从项目根目录执行：
@@ -569,19 +598,20 @@ test_accuracy=96.77% (9677/10000)
 
 训练使用 CPU，400 轮需要较长时间，具体取决于硬件和优化配置。修改参数后执行 `cmake --build build-release --parallel` 重新编译，再启动训练。
 
-当前训练循环按固定顺序遍历完整的 1000 行批次，末尾不足一批的数据会跳过；少于 1000 行时不会执行参数更新，不能直接用默认配置训练小型自采数据集。开始训练前应调整批量大小并完善尾批处理。日志中的 `loss` 是最后一个批次在更新参数后重新计算的损失，`time` 是从训练开始累计的秒数；训练结束后还会输出训练集和测试集准确率。
+原有 `matrix_demo` 训练循环按固定顺序遍历完整的 1000 行批次，末尾不足一批的数据会跳过；少于 1000 行时不会执行参数更新，不能直接用默认配置训练小型自采数据集。开始训练前应调整批量大小并完善尾批处理。日志中的 `loss` 是最后一个批次在更新参数后重新计算的损失，`time` 是从训练开始累计的秒数；训练结束后还会输出训练集和测试集准确率。
 
 ## 代码结构
 
 | 文件或目录 | 作用 |
 | --- | --- |
-| `CMakeLists.txt` | 管理 `nn_core`、`handwritten_data` 两个公共静态库及六个独立程序，管理 raylib 依赖 |
+| `CMakeLists.txt` | 管理 `nn_core`、`handwritten_data` 两个公共静态库及七个独立程序，管理 raylib 依赖 |
 | `include/` | 矩阵、层和网络的公共头文件 |
 | `src/matrix.c` | 矩阵运算与矩阵保存、读取 |
 | `src/layer.c` | 层计算、损失和层类型分派 |
 | `src/network.c` | 层组合、前向反向、参数更新及模型保存、加载 |
 | `programs/main.c` | MNIST 训练入口 |
 | `programs/load_model.c` | 模型评估入口 |
+| `programs/continue_train.c` | 已保存模型的继续训练入口 |
 | `programs/digit_app.c` | raylib 画板与实时预测 |
 | `programs/digit_preprocess.c`、`.h` | 前景规范化、双线性采样、平移/缩放/旋转和随机增强配置 |
 | `tools/mnist.c` | MNIST IDX 转换入口 |
@@ -594,7 +624,7 @@ test_accuracy=96.77% (9677/10000)
 | `build-release/` | 本地 CMake 缓存、依赖和编译产物，不纳入 Git |
 | `build-msvc/` | MSVC 构建目录，Release 程序位于 `bin/Release/`，不纳入 Git |
 
-六个入口文件各自包含 `main`，CMake 将它们构建为独立程序；`handwritten_dataset.c` 是公共功能模块，没有 `main`。采集画板按 E 和运行 `digit_dataset` 都调用同一个导出实现。不要把所有 `.c` 一次链接到同一个可执行文件中。
+七个入口文件各自包含 `main`，CMake 将它们构建为独立程序；`handwritten_dataset.c` 是公共功能模块，没有 `main`。采集画板按 E 和运行 `digit_dataset` 都调用同一个导出实现。不要把所有 `.c` 一次链接到同一个可执行文件中。
 
 ## 常见问题
 
