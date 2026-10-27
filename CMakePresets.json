@@ -1,0 +1,93 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "mingw-release",
+      "generator": "MinGW Makefiles",
+      "binaryDir": "${sourceDir}/build-mingw-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_DIGIT_APP": "ON"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+        "name": "msvc-release",
+        "generator": "Visual Studio 18 2026",
+        "architecture": "x64",
+        "binaryDir": "${sourceDir}/build-msvc-release",
+        "cacheVariables": {
+            "BUILD_DIGIT_APP": "ON"
+        },
+        "condition": {
+            "type": "equals",
+            "lhs": "${hostSystemName}",
+            "rhs": "Windows"
+        }
+    },
+    {
+        "name": "linux-release",
+        "generator": "Unix Makefiles",
+        "binaryDir": "${sourceDir}/build-linux-release",
+        "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Release",
+            "BUILD_DIGIT_APP": "ON"
+        },
+        "condition": {
+            "type": "equals",
+            "lhs": "${hostSystemName}",
+            "rhs": "Linux"
+        }
+    },
+    {
+        "name": "mingw-debug",
+        "inherits": "mingw-release",
+        "binaryDir": "${sourceDir}/build-mingw-debug",
+        "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Debug"
+        }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "mingw-release",
+      "configurePreset": "mingw-release",
+      "jobs": 2,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+        "name": "msvc-release",
+        "configurePreset": "msvc-release",
+        "configuration": "Release",
+        "jobs": 2,
+        "condition": {
+            "type": "equals",
+            "lhs": "${hostSystemName}",
+            "rhs": "Windows"
+        }
+    },
+    {
+        "name": "linux-release",
+        "configurePreset": "linux-release",
+        "jobs": 2,
+        "condition": {
+            "type": "equals",
+            "lhs": "${hostSystemName}",
+            "rhs": "Linux"
+        }
+    },
+    {
+        "name": "mingw-debug",
+        "inherits": "mingw-release",
+        "configurePreset": "mingw-debug"
+    }
+  ]
+}

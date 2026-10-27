@@ -19,6 +19,8 @@ cmake --build build-release --parallel
 
 没有 Git 也可以在仓库页面选择 **Code → Download ZIP**，解压后，在 PowerShell 中进入包含 `CMakeLists.txt` 的目录，再执行上面的两条 `cmake` 命令。
 
+也可以使用[构建预设](#使用预设构建)简化命令。预设使用独立的构建目录，运行程序时请采用该节表格中的产物路径。
+
 确认构建成功后，保持在项目根目录，运行画板：
 
 ```powershell
@@ -291,7 +293,7 @@ cmake --build build-release --target digit_collect digit_dataset --parallel
 
 ### 使用 MSVC 构建
 
-原有的 `digit_app`、`load_model`、`matrix_demo`、`mnist` 已在 Windows x64、**Visual Studio 2026 + MSVC 19.51** 下验证。新增的 `digit_collect`、`digit_dataset` 和公共数据模块本轮仅用 MinGW 验证，尚未补做 MSVC 实测。如果采用 MSVC 路线，无需安装 GCC 或 `mingw32-make`。
+原有的 `digit_app`、`load_model`、`matrix_demo`、`mnist` 已在 Windows x64、**Visual Studio 2026 + MSVC 19.51** 下验证。当前全部目标也已通过 MSVC 的配置、编译和链接，模型评估结果为 96.77%；新增采集、数据集导出工具的交互及完整导出流程尚未在 MSVC 下补做运行验证。如果采用 MSVC 路线，无需安装 GCC 或 `mingw32-make`。
 
 1. 安装 Visual Studio 2026，或对应的 Visual Studio Build Tools。在 Visual Studio Installer 中选择 **“使用 C++ 的桌面开发”**，确认安装 MSVC x64/x86 构建工具和 Windows SDK。具体步骤见 [Microsoft C/C++ 安装说明](https://learn.microsoft.com/en-us/cpp/build/vscpp-step-0-installation)。
 2. 准备 **CMake 4.2 或更新版本**，确认 `cmake --version` 可执行；`Visual Studio 18 2026` 生成器从 CMake 4.2 开始提供，见 [CMake 官方说明](https://cmake.org/cmake/help/latest/generator/Visual%20Studio%2018%202026.html)。
@@ -360,6 +362,100 @@ cmake --build build-core --parallel
 ```
 
 此时生成 `build-core/bin/mnist.exe`、`load_model.exe`、`matrix_demo.exe` 和 `continue_train.exe`。仅在后文的 MNIST 转换、训练、评估命令中将 `build-release` 替换为 `build-core`；采集与数据集导出命令需要启用完整配置。
+
+## 使用预设构建
+
+项目根目录中的 `CMakePresets.json` 保存了共享的生成器、构建目录、配置选项和并行任务数。准备好前文要求的工具链后，可以用预设代替手动填写 `-S`、`-B`、`-G` 等参数。所有命令均在项目根目录执行。
+
+预设文件的格式版本为 6，要求 CMake 至少为 3.25；`msvc-release` 使用 Visual Studio 2026 生成器，仍要求 CMake 至少为 4.2。预设通过系统条件启用对应环境的配置，MinGW 和 MSVC 预设在 Windows 启用，Linux 预设在 Linux 启用。
+
+### 查看预设与产物目录
+
+```powershell
+cmake --list-presets=all
+```
+
+| 预设名称 | 环境与配置 | 程序目录 | 当前验证状态 |
+| --- | --- | --- | --- |
+| `mingw-release` | Windows x64，MinGW-w64 GCC，Release | `build-mingw-release/bin` | 配置、构建和模型评估通过 |
+| `mingw-debug` | Windows x64，MinGW-w64 GCC，Debug | `build-mingw-debug/bin` | 配置、构建和模型评估通过 |
+| `msvc-release` | Windows x64，Visual Studio 2026，Release | `build-msvc-release/bin/Release` | 配置、构建和模型评估通过 |
+| `linux-release` | Linux，原生工具链，Release | `build-linux-release/bin` | 已定义，尚未完成本轮实测 |
+
+三组 Windows 预设均已完成当前全部目标的编译、链接，运行各自产物中的 `load_model` 得到 `test_accuracy=96.77% (9677/10000)`。这不代表所有新增工具的交互和数据处理流程都已逐项运行验证；具体范围见各功能章节。
+
+`mingw-debug` 继承 `mingw-release`，仅覆盖构建目录和 `CMAKE_BUILD_TYPE`，因此两种配置的产物互相独立。所有构建预设使用两个并行任务。当前四组预设均启用 `BUILD_DIGIT_APP`，会构建识别画板、采集画板和数据集导出工具。
+
+### Windows：MinGW Release
+
+```powershell
+cmake --preset mingw-release
+cmake --build --preset mingw-release
+```
+
+第一条命令配置并生成构建文件，第二条命令编译、链接。配置成功后再执行构建。启动识别画板：
+
+```powershell
+.\build-mingw-release\bin\digit_app.exe
+```
+
+### Windows：MinGW Debug
+
+```powershell
+cmake --preset mingw-debug
+cmake --build --preset mingw-debug
+```
+
+Debug 版本包含调试信息，程序位于 `build-mingw-debug/bin`。例如在准备好测试数据后运行评估：
+
+```powershell
+.\build-mingw-debug\bin\load_model.exe
+```
+
+### Windows：MSVC Release
+
+```powershell
+cmake --preset msvc-release
+cmake --build --preset msvc-release
+```
+
+预设已指定 x64，并在构建预设中通过 `configuration: "Release"` 选择 Release，无需另外传入 `--config Release`。例如：
+
+```powershell
+.\build-msvc-release\bin\Release\digit_app.exe
+```
+
+### Linux Release：待实测
+
+以下为预设提供的用法，当前尚未完成这组预设的 Linux 配置、构建及运行实测：
+
+```bash
+cmake --list-presets=all
+cmake --preset linux-release
+cmake --build --preset linux-release
+```
+
+先用 `cmake --version` 确认调用的是至少 3.25 的 CMake。如果 Ubuntu 通过 Snap 安装了新版，而默认命令仍指向旧版，可将上述命令中的 `cmake` 替换为 `/snap/bin/cmake`。启用画板还需要 raylib 所需的系统图形开发依赖；运行窗口程序需要可用的桌面会话。
+
+Linux 的可执行文件没有 `.exe` 后缀。`linux-release` 的产物目录为 `build-linux-release/bin`，待本轮实际验证完成后再补充验证记录。
+
+### 使用预设后，怎样执行下文的命令
+
+下文运行示例默认使用手动构建的 `build-release/bin`。采用预设后，请将运行命令中的程序目录换成上表对应目录。例如使用 `mingw-release` 进行评估：
+
+```powershell
+.\build-mingw-release\bin\load_model.exe
+```
+
+重新构建时也使用对应预设；如只构建采集与导出工具：
+
+```powershell
+cmake --build --preset mingw-release --target digit_collect digit_dataset
+```
+
+修改构建选项后，重新执行对应的 `cmake --preset ...`，再构建。普通 C 源码修改通常直接执行构建预设即可。构建步骤只编译、链接，不会启动训练或数据转换；MNIST 转换目录仍按后文步骤提前创建。程序的相对资源路径仍以当前工作目录为基准，因此请从项目根目录启动，或传入程序支持的绝对资源路径。
+
+`CMakePresets.json` 应随源码提交到 Git。上述 `build-*` 目录已由 `.gitignore` 忽略，不应上传。预设格式与字段见 [CMake Presets 官方文档](https://cmake.org/cmake/help/v3.25/manual/cmake-presets.7.html)。
 
 ## 程序参数
 
@@ -605,6 +701,7 @@ cmake --build build-release --target continue_train --parallel
 | 文件或目录 | 作用 |
 | --- | --- |
 | `CMakeLists.txt` | 管理 `nn_core`、`handwritten_data` 两个公共静态库及七个独立程序，管理 raylib 依赖 |
+| `CMakePresets.json` | 共享 MinGW、MSVC、Linux 构建预设，管理独立构建目录及平台筛选 |
 | `include/` | 矩阵、层和网络的公共头文件 |
 | `src/matrix.c` | 矩阵运算与矩阵保存、读取 |
 | `src/layer.c` | 层计算、损失和层类型分派 |
