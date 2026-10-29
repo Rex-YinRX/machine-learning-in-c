@@ -19,7 +19,7 @@ Network network_struct(const int arch[], size_t arch_count, const LayerType laye
 
     for (size_t j = 0; j < layer_count; ++j) {
         if (layers[j] == LAYER_AFFINE) {
-            ++affine_count;
+            affine_count++;
         }
     }
 
@@ -37,6 +37,9 @@ Network network_struct(const int arch[], size_t arch_count, const LayerType laye
             break;
         case LAYER_SIGMOID:
             network_add_sigmoid(&net);
+            break;
+        case LAYER_RELU:
+            network_add_relu(&net);
             break;
         }
     }
@@ -64,6 +67,12 @@ int network_add_affine(Network *net, size_t input_dim, size_t output_dim)
 int network_add_sigmoid(Network *net)
 {
     da_append(net, layer_sigmoid_alloc());
+    return 1;
+}
+
+int network_add_relu(Network *net)
+{
+    da_append(net, layer_relu_alloc());
     return 1;
 }
 
@@ -204,6 +213,10 @@ Network network_load(FILE *in)
         fread(&type, sizeof type, 1, in);
         if (type == LAYER_SIGMOID) {
             network_add_sigmoid(&net);
+            continue;
+        }
+        if(type == LAYER_RELU){
+            network_add_relu(&net);
             continue;
         }
         if (type != LAYER_AFFINE) {

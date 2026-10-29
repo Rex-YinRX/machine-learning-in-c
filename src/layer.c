@@ -192,6 +192,71 @@ int sigmoid_backward(Mat dx, const SigmoidLayer *layer, Mat dout)
     return 1;
 }
 
+ReluLayer relu_alloc(void)
+{
+    ReluLayer layer = {0};
+    return layer;
+}
+
+void relu_free(ReluLayer *layer)
+{
+    mat_free(&layer->output_cache);   
+    layer->cache_valid = 0;
+}
+
+int relu_forward(Mat dst, ReluLayer *layer, Mat input)
+{
+    if (layer == NULL) {
+        return 0;
+    }
+
+    layer->cache_valid = 0;
+    if (dst.es == NULL || input.es == NULL) {
+        return 0;
+    }
+    if (dst.rows != input.rows || dst.cols != input.cols) {
+        return 0;
+    }
+
+    mat_free(&layer->output_cache);
+    layer->output_cache = mat_alloc(input.rows, input.cols);
+    if (layer->output_cache.es == NULL) {
+        return 0;
+    }
+
+    int ok = mat_copy(dst, input);
+    if (ok) {
+        ok = mat_relu(dst);
+    }
+    if (ok) {
+        ok = mat_copy(layer->output_cache, dst);
+    }
+    layer->cache_valid = ok;
+
+    return ok;
+}
+
+int relu_backward(Mat dst, const ReluLayer *layer, Mat dout)
+{
+    if (layer == NULL || !layer->cache_valid) {
+        return 0;
+    }
+    if (dst.es == NULL || layer->output_cache.es == NULL || dout.es == NULL) {
+        return 0;
+    }
+    if (dst.rows != layer->output_cache.rows || dst.cols != layer->output_cache.cols ||
+        dout.rows != layer->output_cache.rows || dout.cols != layer->output_cache.cols) {
+        return 0;
+    }
+
+    for (size_t i = 0; i < layer->output_cache.rows; ++i) {
+        for (size_t j = 0; j < layer->output_cache.cols; ++j) {
+            MAT_AT(dst, i, j) = MAT_AT(layer->output_cache, i, j) > 0.0f
+                              ? MAT_AT(dout, i, j) : 0.0f;
+        }
+    }
+    return 1;
+}
 
 SoftmaxWithLossLayer softmax_with_loss_alloc(size_t batch_size, size_t class_count)
 {
@@ -274,41 +339,6 @@ int cross_entropy_loss(float *loss, Mat p, const size_t *labels, size_t count)
     return 1;
 }
 
-int relu_forward(Mat dst, Mat input)
-{
-    if (dst.es == NULL || input.es == NULL) {
-        return 0;
-    }
-    if (dst.rows != input.rows || dst.cols != input.cols) {
-        return 0;
-    }
-
-    int ok = mat_copy(dst, input);
-    if (ok) {
-        ok = mat_relu(dst);
-    }
-    return ok;
-}
-
-int relu_backward(Mat dst, Mat output, Mat dout)
-{
-    if (dst.es == NULL || output.es == NULL || dout.es == NULL) {
-        return 0;
-    }
-    if (dst.rows != output.rows || dst.cols != output.cols ||
-        dout.rows != output.rows || dout.cols != output.cols) {
-        return 0;
-    }
-
-    for (size_t i = 0; i < output.rows; ++i) {
-        for (size_t j = 0; j < output.cols; ++j) {
-            MAT_AT(dst, i, j) = MAT_AT(output, i, j) > 0.0f
-                              ? MAT_AT(dout, i, j) : 0.0f;
-        }
-    }
-    return 1;
-}
-
 Layer layer_affine_alloc(size_t input_dim, size_t output_dim)
 {
     Layer layer = {0};
@@ -325,6 +355,14 @@ Layer layer_sigmoid_alloc(void)
     return layer;
 }
 
+Layer layer_relu_alloc(void)
+{
+    Layer layer = {0};
+    layer.type = LAYER_RELU;
+    layer.data.relu = relu_alloc();
+    return layer;
+}
+
 void layer_free(Layer *layer)
 {
     if (layer == NULL) {
@@ -337,6 +375,9 @@ void layer_free(Layer *layer)
             break;
         case LAYER_SIGMOID:
             sigmoid_free(&layer->data.sigmoid);
+            break;
+        case LAYER_RELU:
+            relu_free(&layer->data.relu);
             break;
     }
 }
@@ -352,6 +393,8 @@ int layer_forward(Mat dst, Layer *layer, Mat input)
             return affine_forward(dst, &layer->data.affine, input);
         case LAYER_SIGMOID:
             return sigmoid_forward(dst, &layer->data.sigmoid, input);
+        case LAYER_RELU:
+            return relu_forward(dst, &layer->data.relu, input);
         default:
             return 0;
     }
@@ -367,6 +410,8 @@ int layer_backward(Mat dx, Layer *layer, Mat dout)
             return affine_backward(dx, &layer->data.affine, dout);
         case LAYER_SIGMOID:
             return sigmoid_backward(dx, &layer->data.sigmoid, dout);
+        case LAYER_RELU:
+            return relu_backward(dx, &layer->data.relu, dout);
         default:
             return 0;
     }
@@ -381,6 +426,8 @@ int layer_sgd_step(Layer *layer, float learning_rate)
         case LAYER_AFFINE:
             return affine_sgd_step(&layer->data.affine, learning_rate);
         case LAYER_SIGMOID:
+            return 1;
+        case LAYER_RELU:
             return 1;
         default:
             return 0;
@@ -401,6 +448,8 @@ size_t layer_output_cols(const Layer *layer, size_t input_cols)
             return layer->data.affine.w.cols;
         case LAYER_SIGMOID:
             return input_cols;
+        case LAYER_RELU:
+            return input_cols;
         default:
             return 0;
     }
@@ -419,6 +468,8 @@ size_t layer_input_cols(const Layer *layer, size_t dout_cols)
             }
             return layer->data.affine.w.rows;
         case LAYER_SIGMOID:
+            return dout_cols;
+        case LAYER_RELU:
             return dout_cols;
         default:
             return 0;

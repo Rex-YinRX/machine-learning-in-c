@@ -26,14 +26,25 @@ int affine_sgd_step(AffineLayer *layer, float learning_rate);           //根据
 /* Sigmoid 激活层：保存前向输出，供反向传播计算导数 */
 typedef struct {
     Mat output_cache;   //层拥有的前向输出缓存
-    int cache_valid;    // 最近一次前向计算成功后为 1
+    int cache_valid;    //最近一次前向计算成功后为 1
 } SigmoidLayer;
 
 /*Sigmoid 激活层操作函数*/
-SigmoidLayer sigmoid_alloc(void);
-void sigmoid_free(SigmoidLayer *layer);
-int sigmoid_forward(Mat dst, SigmoidLayer *layer, Mat input);
-int sigmoid_backward(Mat dx, const SigmoidLayer *layer, Mat dout);
+SigmoidLayer sigmoid_alloc(void);                                   //初始化 Sigmoid 层，缓存初始为空
+void sigmoid_free(SigmoidLayer *layer);                             //释放输出缓存并清空缓存标记
+int sigmoid_forward(Mat dst, SigmoidLayer *layer, Mat input);       //计算 Sigmoid，写入 dst 并缓存输出
+int sigmoid_backward(Mat dx, const SigmoidLayer *layer, Mat dout);  //利用缓存输出计算输入梯度，写入 dx
+
+typedef struct {
+    Mat output_cache;   //层拥有的前向输出缓存
+    int cache_valid;    //最近一次前向计算成功后为 1
+} ReluLayer;
+
+ReluLayer relu_alloc(void);
+void relu_free(ReluLayer *layer);
+int relu_forward(Mat dst, ReluLayer *layer,Mat input);
+int relu_backward(Mat dst, const ReluLayer *layer, Mat dout);
+
 
 typedef struct {
     Mat p;
@@ -49,15 +60,12 @@ int softmax_with_loss_backward(Mat dst, const SoftmaxWithLossLayer *layer, float
 
 int cross_entropy_loss(float *loss, Mat p,const size_t *labels, size_t count);
 
-/*
-int relu_forward(Mat dst, Mat input);
-int relu_backward(Mat dst, Mat output, Mat dout);
-*/
 
 
 typedef enum {
     LAYER_AFFINE,
-    LAYER_SIGMOID
+    LAYER_SIGMOID,
+    LAYER_RELU
 } LayerType;
 
 typedef struct {
@@ -66,11 +74,13 @@ typedef struct {
     union {
         AffineLayer affine;
         SigmoidLayer sigmoid;
+        ReluLayer relu;
     } data;
 } Layer;
 
 Layer layer_affine_alloc(size_t input_dim, size_t output_dim);
 Layer layer_sigmoid_alloc(void);
+Layer layer_relu_alloc(void);
 void layer_free(Layer *layer);
 int layer_forward(Mat dst, Layer *layer, Mat input);
 int layer_backward(Mat dx, Layer *layer, Mat dout);
